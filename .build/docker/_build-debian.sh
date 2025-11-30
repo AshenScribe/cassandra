@@ -15,6 +15,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Simple release build helper.
+# Flags:
+#   --skip-changelog : skip dch changelog update (useful for retrying failed release attempts)
+
+
 ################################
 #
 # Prep
@@ -26,11 +31,22 @@
 # variables, with defaults
 [ "x${CASSANDRA_DIR}" != "x" ] || CASSANDRA_DIR="$(readlink -f $(dirname "$0")/..)"
 [ "x${DIST_DIR}" != "x" ] || DIST_DIR="${CASSANDRA_DIR}/build"
+SKIP_CHANGELOG=false
 
+for arg in "$@"; do
+    case $arg in
+        --skip-changelog)
+            SKIP_CHANGELOG=true
+            shift
+            ;;
+    esac
+done
 # pre-conditions
 command -v ant >/dev/null 2>&1 || { echo >&2 "ant needs to be installed"; exit 1; }
 command -v git >/dev/null 2>&1 || { echo >&2 "git needs to be installed"; exit 1; }
-command -v dch >/dev/null 2>&1 || { echo >&2 "dch needs to be installed"; exit 1; }
+if [ "$SKIP_CHANGELOG" = false ]; then
+    command -v dch >/dev/null 2>&1 || { echo >&2 "dch needs to be installed"; exit 1; }
+fi
 command -v dpkg-parsechangelog >/dev/null 2>&1 || { echo >&2 "dpkg-parsechangelog needs to be installed"; exit 1; }
 command -v dpkg-buildpackage >/dev/null 2>&1 || { echo >&2 "dpkg-buildpackage needs to be installed"; exit 1; }
 [ -d "${CASSANDRA_DIR}" ] || { echo >&2 "Directory ${CASSANDRA_DIR} must exist"; exit 1; }
@@ -100,7 +116,9 @@ else
     dt=`date +"%Y%m%d"`
     ref=`git rev-parse --short HEAD || ( grep -q GitSHA src/resources/org/apache/cassandra/config/version.properties && grep GitSHA src/resources/org/apache/cassandra/config/version.properties | cut -d"=" -f2 ) || echo unknown`
     CASSANDRA_REVISION="${dt}git${ref}"
-    dch -D unstable -v "${CASSANDRA_VERSION}-${CASSANDRA_REVISION}" --package "cassandra" "building ${CASSANDRA_VERSION}-${CASSANDRA_REVISION}"
+    if [ "$SKIP_CHANGELOG" = false ]; then
+        dch -D unstable -v "${CASSANDRA_VERSION}-${CASSANDRA_REVISION}" --package "cassandra" "building ${CASSANDRA_VERSION}-${CASSANDRA_REVISION}"
+    fi
 fi
 
 # The version used for the deb build process will the current version in the debian/changelog file.
