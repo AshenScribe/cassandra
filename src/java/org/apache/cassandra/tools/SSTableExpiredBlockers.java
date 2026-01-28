@@ -47,7 +47,7 @@ import static org.apache.cassandra.utils.Clock.Global.currentTimeMillis;
  * This class outputs all sstables that are blocking other sstables from getting dropped so that a user can
  * figure out why certain sstables are still on disk.
  */
-public class SSTableExpiredBlockers
+public class STableExpiredBlockers
 {
     public static void main(String[] args)
     {

@@ -1,0 +1,60 @@
+
+#!/usr/bin/env bash
+set -euo pipefail
+
+CASSANDRA_HOME=${CASSANDRA_HOME:-/home/rishabh/cassandra}
+KEYSPACE=ks
+TABLE=t
+
+if [[ $EUID -ne 0 ]]; then
+  echo "ERROR: Run this script as root (required to change system time)"
+  exit 1
+fi
+
+echo "[1] Disabling NTP"
+timedatectl set-ntp false
+
+echo "[2] Creating schema (gc_grace_seconds=60)"
+$CASSANDRA_HOME/bin/cqlsh <<EOF
+DROP KEYSPACE IF EXISTS $KEYSPACE;
+CREATE KEYSPACE $KEYSPACE
+  WITH replication = {'class':'SimpleStrategy','replication_factor':1};
+
+CREATE TABLE $KEYSPACE.$TABLE (
+  pk int PRIMARY KEY,
+  v text
+) WITH gc_grace_seconds = 60;
+EOF
+
+echo "[3] Disabling auto-compaction"
+$CASSANDRA_HOME/bin/nodetool disableautocompaction $KEYSPACE $TABLE
+
+echo "[4] Moving system clock BACK (2 days)"
+date -s "2 days ago"
+
+echo "[5] Inserting non-TTL data (BLOCKER)"
+$CASSANDRA_HOME/bin/cqlsh <<EOF
+INSERT INTO $KEYSPACE.$TABLE (pk, v) VALUES (1, 'blocking_old');
+EOF
+
+echo "[6] Flushing (creates blocker SSTable)"
+$CASSANDRA_HOME/bin/nodetool flush $KEYSPACE $TABLE
+
+echo "[7] Restoring correct system time"
+date -s "now"
+timedatectl set-ntp true
+
+echo "[8] Inserting TTL data (will expire)"
+$CASSANDRA_HOME/bin/cqlsh <<EOF
+INSERT INTO $KEYSPACE.$TABLE (pk, v) VALUES (1, 'expired_new') USING TTL 10;
+EOF
+
+echo "[9] Flushing (creates expired SSTable)"
+$CASSANDRA_HOME/bin/nodetool flush $KEYSPACE $TABLE
+
+echo "[10] Waiting for TTL + gc_grace_seconds (75s)"
+sleep 75
+
+echo "[11] Running sstableexpiredblockers"
+echo "--------------------------------------------------"
+$CASSANDRA_HOME/tools/bin/sstableexpiredblockers $KEYSPACE $TABLE
