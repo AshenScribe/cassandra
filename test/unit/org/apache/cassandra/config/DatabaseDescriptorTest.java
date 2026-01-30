@@ -782,6 +782,25 @@ public class DatabaseDescriptorTest
     }
 
     @Test
+    public void testMispreparedStatementsEnabled() {
+        boolean originalValue = DatabaseDescriptor.getUseMispreparedStatementsEnabled();
+        try
+        {
+            DatabaseDescriptor.setUseMispreparedStatementsEnabled(true);
+            Assert.assertTrue("Value should be true after setting to true",
+                              DatabaseDescriptor.getUseMispreparedStatementsEnabled());
+
+            DatabaseDescriptor.setUseMispreparedStatementsEnabled(false);
+            Assert.assertFalse("Value should be false after setting to false",
+                               DatabaseDescriptor.getUseMispreparedStatementsEnabled());
+        }
+        finally
+        {
+            DatabaseDescriptor.setUseMispreparedStatementsEnabled(originalValue);
+        }
+    }
+
+    @Test
     public void testRowIndexSizeWarnEnabledAbortDisabled()
     {
         Config conf = new Config();

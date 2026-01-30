@@ -1330,6 +1330,12 @@ public class GuardrailsOptions implements GuardrailsConfig
     }
 
     @Override
+    public boolean getMispreparedStatementsEnabled()
+    {
+        return config.use_misprepare_statements_enabled;
+    }
+
+    @Override
     public void setVectorTypeEnabled(boolean enabled)
     {
         updatePropertyWithLogging("vector_type_enabled",

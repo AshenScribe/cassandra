@@ -613,6 +613,15 @@ public final class Guardrails implements GuardrailsMBean
                      format("The keyspace %s has a replication factor of %s, above the %s threshold of %s.",
                             what, value, isWarning ? "warning" : "failure", threshold));
 
+    /**
+     * Guardrail on mis-prepared statements.
+     */
+    public static final EnableFlag MispreparedStatementsEnabled =
+    new EnableFlag("misprepared_statements_enabled",
+                   "Mis-prepared statements cause server-side memory exhaustion and high GC pressure by flooding the statement cache with non-reusable query entries",
+                   state -> CONFIG_PROVIDER.getOrCreate(state).getMispreparedStatementsEnabled(),
+                   "Mis-prepared statements");
+
     public static final MaxThreshold maximumAllowableTimestamp =
     new MaxThreshold("maximum_timestamp",
                      "Timestamps too far in the future can lead to data that can't be easily overwritten",

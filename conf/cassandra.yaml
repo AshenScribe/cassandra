@@ -2531,6 +2531,10 @@ drop_compact_storage_enabled: false
 # This would also apply to system keyspaces.
 # maximum_replication_factor_warn_threshold: -1
 # maximum_replication_factor_fail_threshold: -1
+#
+# When true, allows the use of misprepared statements, only warns in the logs.
+# When false, misprepared statements will result in an error to the client.
+# use_misprepare_statements_enabled: false
 
 #role_name_policy:
 #  # Implementation class of a validator. When not in form of FQCN, the
