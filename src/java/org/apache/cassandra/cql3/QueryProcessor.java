@@ -524,7 +524,7 @@ public class QueryProcessor implements QueryHandler
 
     private static void checkMispreparedGuardrail(CQLStatement statement, ClientState clientState)
     {
-        if (clientState.isInternal || !Guardrails.MispreparedStatementsEnabled.enabled(clientState))
+        if (clientState.isInternal)
         {
             return;
         }
