@@ -90,6 +90,7 @@ import org.apache.cassandra.schema.SchemaChangeListener;
 import org.apache.cassandra.schema.SchemaConstants;
 import org.apache.cassandra.schema.TableMetadata;
 import org.apache.cassandra.service.ClientState;
+import org.apache.cassandra.service.ClientWarn;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.service.pager.QueryPager;
@@ -103,6 +104,7 @@ import org.apache.cassandra.utils.CassandraVersion;
 import org.apache.cassandra.utils.FBUtilities;
 import org.apache.cassandra.utils.JVMStabilityInspector;
 import org.apache.cassandra.utils.MD5Digest;
+import org.apache.cassandra.utils.NoSpamLogger;
 import org.apache.cassandra.utils.ObjectSizes;
 import org.apache.cassandra.utils.concurrent.Future;
 import org.apache.cassandra.utils.concurrent.FutureCombiner;
@@ -529,7 +531,23 @@ public class QueryProcessor implements QueryHandler
 
         if (isMisprepared(statement))
         {
-            Guardrails.MispreparedStatementsEnabled.ensureEnabled(clientState);
+            if (Guardrails.MispreparedStatementsEnabled.enabled(clientState))
+            {
+                Guardrails.MispreparedStatementsEnabled.ensureEnabled(clientState);
+            }
+            else
+            {
+                String msg = "Performance Tip: This query contains literal values in the WHERE clause. " +
+                             "Using '?' placeholders (bind markers) is much more efficient. " +
+                             "It allows the server to cache this query once and reuse it for different values, " +
+                             "reducing memory usage and improving speed.";
+
+                ClientWarn.instance.warn(msg);
+
+                NoSpamLogger.log(logger, NoSpamLogger.Level.WARN, 1, TimeUnit.MINUTES,
+                                 "Client {} prepared a non-reusable query: {}",
+                                 clientState.getRemoteAddress(), statement);
+            }
         }
     }
 
