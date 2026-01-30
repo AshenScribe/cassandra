@@ -50,6 +50,7 @@ import org.apache.cassandra.cql3.functions.Function;
 import org.apache.cassandra.cql3.functions.FunctionName;
 import org.apache.cassandra.cql3.functions.UDAggregate;
 import org.apache.cassandra.cql3.functions.UDFunction;
+import org.apache.cassandra.cql3.restrictions.StatementRestrictions;
 import org.apache.cassandra.cql3.selection.ResultSetBuilder;
 import org.apache.cassandra.cql3.statements.BatchStatement;
 import org.apache.cassandra.cql3.statements.ModificationStatement;
@@ -64,6 +65,7 @@ import org.apache.cassandra.db.ReadQuery;
 import org.apache.cassandra.db.ReadResponse;
 import org.apache.cassandra.db.SinglePartitionReadQuery;
 import org.apache.cassandra.db.SystemKeyspace;
+import org.apache.cassandra.db.guardrails.Guardrails;
 import org.apache.cassandra.db.marshal.AbstractType;
 import org.apache.cassandra.db.partitions.PartitionIterator;
 import org.apache.cassandra.db.partitions.PartitionIterators;
@@ -495,6 +497,11 @@ public class QueryProcessor implements QueryHandler
         CQLStatement statement = raw.prepare(clientState);
         statement.validate(clientState);
 
+        if (!isInternal)
+        {
+            checkMispreparedGuardrail(statement, clientState);
+        }
+
         // Set CQL string for AlterSchemaStatement as this is used to serialize the transformation
         // in the cluster metadata log
         if (statement instanceof AlterSchemaStatement)
@@ -511,6 +518,46 @@ public class QueryProcessor implements QueryHandler
             res.pstmntSize = measurePstmnt(res);
 
         return res;
+    }
+
+    private static void checkMispreparedGuardrail(CQLStatement statement, ClientState clientState)
+    {
+        if (clientState.isInternal || !Guardrails.MispreparedStatementsEnabled.enabled(clientState))
+        {
+            return;
+        }
+
+        if (isMisprepared(statement))
+        {
+            Guardrails.MispreparedStatementsEnabled.ensureEnabled(clientState);
+        }
+    }
+
+    private static boolean isMisprepared(CQLStatement statement)
+    {
+        if (!statement.getBindVariables().isEmpty())
+            return false;
+
+        if (statement instanceof BatchStatement)
+        {
+            for (ModificationStatement subStmt : ((BatchStatement) statement).getStatements())
+            {
+                if (isMisprepared(subStmt))
+                    return true;
+            }
+            return false;
+        }
+
+        StatementRestrictions restrictions = null;
+        if (statement instanceof SelectStatement)
+            restrictions = ((SelectStatement) statement).getRestrictions();
+        else if (statement instanceof ModificationStatement)
+            restrictions = ((ModificationStatement) statement).getRestrictions();
+
+        return (restrictions != null &&
+                (restrictions.hasPartitionKeyRestrictions()
+                 || restrictions.hasClusteringColumnsRestrictions()
+                 || restrictions.hasNonPrimaryKeyRestrictions()));
     }
 
     public static UntypedResultSet executeInternal(String query, Object... values)
