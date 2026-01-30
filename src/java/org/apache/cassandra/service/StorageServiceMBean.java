@@ -1100,6 +1100,16 @@ public interface StorageServiceMBean extends NotificationEmitter
     @Deprecated(since = "5.0")
     public void setColumnIndexCacheSize(int cacheSizeInKB);
 
+    /**
+     * Returns whether use of misprepared statements is enabled
+     */
+    public boolean getUseMispreparedStatementsEnabled();
+
+    /**
+     * Sets whether use of misprepared statements is enabled
+     */
+    public void setUseMispreparedStatementsEnabled(boolean enabled);
+
     /** Returns the threshold for skipping the column index when caching partition info **/
     public int getColumnIndexCacheSizeInKiB();
 

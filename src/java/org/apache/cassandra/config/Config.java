@@ -666,6 +666,8 @@ public class Config
 
     public volatile boolean use_statements_enabled = true;
 
+    public volatile boolean use_misprepare_statements_enabled = false;
+
     /**
      * Optionally disable asynchronous UDF execution.
      * Disabling asynchronous UDF execution also implicitly disables the security-manager!

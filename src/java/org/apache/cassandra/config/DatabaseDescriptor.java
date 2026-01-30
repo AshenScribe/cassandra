@@ -5589,12 +5589,26 @@ public class DatabaseDescriptor
         return conf.use_statements_enabled;
     }
 
+    public static boolean getUseMispreparedStatementsEnabled()
+    {
+        return conf.use_misprepare_statements_enabled;
+    }
+
     public static void setUseStatementsEnabled(boolean enabled)
     {
         if (enabled != conf.use_statements_enabled)
         {
             logger.info("Setting use_statements_enabled to {}", enabled);
             conf.use_statements_enabled = enabled;
+        }
+    }
+
+    public static void setUseMispreparedStatementsEnabled(boolean enabled)
+    {
+        if (enabled != conf.use_misprepare_statements_enabled)
+        {
+            logger.info("Setting use_misprepare_statements_enabled to {}", enabled);
+            conf.use_misprepare_statements_enabled = enabled;
         }
     }
 

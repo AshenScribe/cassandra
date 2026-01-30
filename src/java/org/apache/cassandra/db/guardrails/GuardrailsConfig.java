@@ -407,6 +407,12 @@ public interface GuardrailsConfig
     boolean getVectorTypeEnabled();
 
     /**
+     * @return Whether use misprepared statements is enabled. If not enabled, misprepared statements will fail
+     * otherwise warned.
+     */
+    boolean getMispreparedStatementsEnabled();
+
+    /**
      * Sets whether new columns can be created with vector type
      *
      * @param enabled
@@ -508,6 +514,8 @@ public interface GuardrailsConfig
     boolean getIntersectFilteringQueryEnabled();
 
     void setIntersectFilteringQueryEnabled(boolean value);
+
+
 
     /**
      * @return A timestamp that if a user supplied timestamp is after will trigger a warning

@@ -4850,6 +4850,19 @@ public class StorageService extends NotificationBroadcasterSupport implements IE
         logger.info("Updated column_index_cache_size to {}", cacheSizeInKB);
     }
 
+    @Override
+    public boolean getUseMispreparedStatementsEnabled()
+    {
+        return DatabaseDescriptor.getUseMispreparedStatementsEnabled();
+    }
+
+    @Override
+    public void setUseMispreparedStatementsEnabled(boolean enabled)
+    {
+        DatabaseDescriptor.setUseMispreparedStatementsEnabled(enabled);
+        logger.info("Updated use_misprepared_statements_enabled to {}", enabled);
+    }
+
     /*
      * In CASSANDRA-17668, JMX setters that did not throw standard exceptions were deprecated in favor of ones that do.
      * For consistency purposes, the respective getter "getColumnIndexCacheSize" was also deprecated and replaced by
