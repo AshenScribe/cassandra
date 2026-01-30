@@ -1214,4 +1214,12 @@ public interface GuardrailsMBean
      * @param value JSON representation of a map of driver name to minimum version string.
      */
     void setMinimumClientDriverVersionsDisallowed(String value);
+
+    boolean getPreparedStatementsRequireParametersWarn();
+
+    boolean getPreparedStatementsRequireParametersFail();
+
+    void setPreparedStatementsRequireParametersWarn(boolean enabled);
+
+    void setPreparedStatementsRequireParametersFail(boolean enabled);
 }

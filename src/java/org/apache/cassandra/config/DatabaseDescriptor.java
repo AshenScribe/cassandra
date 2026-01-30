@@ -5634,7 +5634,6 @@ public class DatabaseDescriptor
         }
     }
 
-
     public static AccordSpec getAccord()
     {
         return conf.accord;

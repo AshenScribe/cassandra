@@ -695,4 +695,12 @@ public interface GuardrailsConfig
      * driver version is below the specified minimum.
      */
     Map<String, String> getMinimumClientDriverVersionsDisallowed();
+
+    boolean getPreparedStatementsRequireParametersWarn();
+
+    boolean getPreparedStatementsRequireParametersFail();
+
+    void setPreparedStatementsRequireParametersWarn(boolean enabled);
+
+    void setPreparedStatementsRequireParametersFail(boolean enabled);
 }

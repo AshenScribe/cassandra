@@ -338,10 +338,17 @@ public class SelectStatement implements CQLStatement.SingleKeyspaceCqlStatement,
         }
     }
 
+    @Override
     public void validate(ClientState state) throws InvalidRequestException
     {
         if (parameters.allowFiltering && !SchemaConstants.isSystemKeyspace(table.keyspace))
             Guardrails.allowFilteringEnabled.ensureEnabled(state);
+    }
+
+    @Override
+    public void validatePrepare(ClientState state)
+    {
+        Guardrails.preparedStatementsRequireParameters.guard(this, restrictions, state);
     }
 
     @Override

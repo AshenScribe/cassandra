@@ -58,6 +58,7 @@ public final class Guardrails implements GuardrailsMBean
     public static final String MBEAN_NAME = "org.apache.cassandra.db:type=Guardrails";
 
     public static final GuardrailsConfigProvider CONFIG_PROVIDER = GuardrailsConfigProvider.instance;
+
     private static final GuardrailsOptions DEFAULT_CONFIG = DatabaseDescriptor.getGuardrailsConfig();
 
     @VisibleForTesting
@@ -626,6 +627,10 @@ public final class Guardrails implements GuardrailsMBean
                      (isWarning, what, value, threshold) ->
                      format("The keyspace %s has a replication factor of %s, above the %s threshold of %s.",
                             what, value, isWarning ? "warning" : "failure", threshold));
+
+
+    public static final PreparedStatementParameterRequirementGuardrail preparedStatementsRequireParameters =
+    new PreparedStatementParameterRequirementGuardrail();
 
     public static final MaxThreshold maximumAllowableTimestamp =
     new MaxThreshold("maximum_timestamp",
@@ -1919,6 +1924,30 @@ public final class Guardrails implements GuardrailsMBean
         {
             throw new RuntimeException("Unable to deserialize minimum_client_driver_versions_disallowed: " + t.getMessage());
         }
+    }
+
+    @Override
+    public boolean getPreparedStatementsRequireParametersWarn()
+    {
+        return DEFAULT_CONFIG.getPreparedStatementsRequireParametersWarn();
+    }
+
+    @Override
+    public boolean getPreparedStatementsRequireParametersFail()
+    {
+        return DEFAULT_CONFIG.getPreparedStatementsRequireParametersFail();
+    }
+
+    @Override
+    public void setPreparedStatementsRequireParametersWarn(boolean enabled)
+    {
+        DEFAULT_CONFIG.setPreparedStatementsRequireParametersWarn(enabled);
+    }
+
+    @Override
+    public void setPreparedStatementsRequireParametersFail(boolean enabled)
+    {
+        DEFAULT_CONFIG.setPreparedStatementsRequireParametersFail(enabled);
     }
 
     private static String toCSV(Set<String> values)
