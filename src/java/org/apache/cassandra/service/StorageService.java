@@ -4851,16 +4851,16 @@ public class StorageService extends NotificationBroadcasterSupport implements IE
     }
 
     @Override
-    public boolean getUseMispreparedStatementsEnabled()
+    public boolean getMispreparedStatementsEnabled()
     {
-        return DatabaseDescriptor.getUseMispreparedStatementsEnabled();
+        return DatabaseDescriptor.getMispreparedStatementsEnabled();
     }
 
     @Override
-    public void setUseMispreparedStatementsEnabled(boolean enabled)
+    public void setMispreparedStatementsEnabled(boolean enabled)
     {
-        DatabaseDescriptor.setUseMispreparedStatementsEnabled(enabled);
-        logger.info("Updated use_misprepared_statements_enabled to {}", enabled);
+        DatabaseDescriptor.setMispreparedStatementsEnabled(enabled);
+        logger.info("Updated misprepared_statements_enabled to {}", enabled);
     }
 
     /*

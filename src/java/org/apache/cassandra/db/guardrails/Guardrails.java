@@ -616,9 +616,13 @@ public final class Guardrails implements GuardrailsMBean
                             what, value, isWarning ? "warning" : "failure", threshold));
 
     /**
-     * Guardrail on mis-prepared statements.
+     * Prevents heap exhaustion caused by the anti-pattern of preparing queries with
+     * hardcoded literals instead of bind markers. This prevents filling the statement cache with non-reusable entries.
+     *
+     * @see <a href="https://issues.apache.org/jira/browse/CASSANDRA-21139">CASSANDRA-21139</a>
      */
-    public static final EnableFlag MispreparedStatementsEnabled =
+
+    public static final EnableFlag mispreparedStatementsEnabled =
     new EnableFlag("misprepared_statements_enabled",
                    "Mis-prepared statements cause server-side memory exhaustion and high GC pressure by flooding the statement cache with non-reusable query entries",
                    state -> CONFIG_PROVIDER.getOrCreate(state).getMispreparedStatementsEnabled(),

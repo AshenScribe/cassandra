@@ -407,10 +407,38 @@ public interface GuardrailsConfig
     boolean getVectorTypeEnabled();
 
     /**
-     * @return Whether use misprepared statements is enabled. If not enabled, misprepared statements will fail
-     * otherwise warned.
+     * <p>
+     * A statement is considered "mis-prepared" if it contains hardcoded literal values
+     * instead of bind markers. This is a performance anti-pattern because it prevents
+     * query plan reuse and floods the server-side Prepared Statement Cache with
+     * unique entries, leading to heap exhaustion and high GC pressure.
+     * <p>
+     * <b>LWT and Batch Considerations:</b>
+     * This check applies to both the {@code WHERE} clause and the {@code IF} conditions
+     * in Lightweight Transactions (LWT). For example, the following is considered
+     * mis-prepared because of the hardcoded literals:
+     * <pre>{@code
+     * UPDATE users SET description = 'v2' WHERE id = 1 AND name = 'v1' IF description = 'v0'
+     * }</pre>
+     * To be compliant, it should use bind markers ({@code ?}):
+     * <pre>{@code
+     * UPDATE users SET description = ? WHERE id = ? AND name = ? IF description = ?
+     * }</pre>
+     * For {@code BATCH} statements, if any individual statement within the batch is
+     * identified as mis-prepared, the entire batch triggers this guardrail.
+
+     *
+     * @return true if the usage of mis-prepared statements is enabled, false otherwise. Returns true by default.
+     * {@code false} if mis-prepared statements should be strictly rejected, causing the query to fail.
+     * @see <a href="https://issues.apache.org/jira/browse/CASSANDRA-21139">CASSANDRA-21139</a>
      */
+
     boolean getMispreparedStatementsEnabled();
+
+    /**
+     * sets whether misprepared statements is enabled
+     */
+    void setMispreparedStatementsEnabled(boolean enabled);
 
     /**
      * Sets whether new columns can be created with vector type
