@@ -665,8 +665,6 @@ public class Config
 
     public volatile boolean use_statements_enabled = true;
 
-    public volatile boolean use_misprepare_statements_enabled = false;
-
     /**
      * Optionally disable asynchronous UDF execution.
      * Disabling asynchronous UDF execution also implicitly disables the security-manager!
@@ -939,6 +937,7 @@ public class Config
     public volatile boolean user_timestamps_enabled = true;
     public volatile boolean alter_table_enabled = true;
     public volatile boolean group_by_enabled = true;
+    public volatile boolean misprepared_statements_enabled = false;
     public volatile boolean bulk_load_enabled = true;
     public volatile boolean drop_truncate_table_enabled = true;
     public volatile boolean drop_keyspace_enabled = true;

@@ -1332,7 +1332,16 @@ public class GuardrailsOptions implements GuardrailsConfig
     @Override
     public boolean getMispreparedStatementsEnabled()
     {
-        return config.use_misprepare_statements_enabled;
+        return config.misprepared_statements_enabled;
+    }
+
+
+    public void setMispreparedStatementsEnabled(boolean enabled)
+    {
+        updatePropertyWithLogging("use_misprepare_statements_enabled",
+                                  enabled,
+                                  () -> config.misprepared_statements_enabled,
+                                  x -> config.misprepared_statements_enabled = x);
     }
 
     @Override

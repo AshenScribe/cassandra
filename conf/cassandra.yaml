@@ -2534,7 +2534,7 @@ drop_compact_storage_enabled: false
 #
 # When true, allows the use of misprepared statements, only warns in the logs.
 # When false, misprepared statements will result in an error to the client. Default is true.
-# use_misprepare_statements_enabled: false
+# misprepare_statements_enabled: false
 
 #role_name_policy:
 #  # Implementation class of a validator. When not in form of FQCN, the

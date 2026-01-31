@@ -44,7 +44,7 @@ public class MispreparedStatementsTest extends CQLTester
     {
         DatabaseDescriptor.setAuthenticator(new PasswordAuthenticator());
         DatabaseDescriptor.setAuthorizer(new CassandraAuthorizer());
-        DatabaseDescriptor.setUseMispreparedStatementsEnabled(false);
+        DatabaseDescriptor.setMispreparedStatementsEnabled(false);
     }
 
     @Before
@@ -85,7 +85,7 @@ public class MispreparedStatementsTest extends CQLTester
     @After
     public void tearDown()
     {
-        DatabaseDescriptor.setUseMispreparedStatementsEnabled(false);
+        DatabaseDescriptor.setMispreparedStatementsEnabled(false);
     }
 
     @Test
@@ -349,7 +349,7 @@ public class MispreparedStatementsTest extends CQLTester
     @Test
     public void testGuardrailDisabledAllowsLiterals()
     {
-        DatabaseDescriptor.setUseMispreparedStatementsEnabled(true);
+        DatabaseDescriptor.setMispreparedStatementsEnabled(true);
         String query = String.format("SELECT * FROM %s WHERE id = 1", currentTable());
         try
         {
@@ -364,7 +364,7 @@ public class MispreparedStatementsTest extends CQLTester
     @Test
     public void testGuardrailDisabledAllowsBatchLiterals()
     {
-        DatabaseDescriptor.setUseMispreparedStatementsEnabled(true);
+        DatabaseDescriptor.setMispreparedStatementsEnabled(true);
         String tableName = currentTable();
         String batchWithLiterals = String.format("BEGIN BATCH " +
                                                  "INSERT INTO %s.%s (id, description, name) VALUES (1, 'v1', 'v1'); " +

@@ -43,6 +43,7 @@ import org.antlr.runtime.RecognitionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.apache.cassandra.auth.AuthenticatedUser;
 import org.apache.cassandra.concurrent.ImmediateExecutor;
 import org.apache.cassandra.concurrent.ScheduledExecutors;
 import org.apache.cassandra.config.DatabaseDescriptor;
@@ -133,6 +134,12 @@ public class QueryProcessor implements QueryHandler
     // Direct calls to processStatement do not increment the preparedStatementsExecuted/regularStatementsExecuted
     // counters. Callers of processStatement are responsible for correctly notifying metrics
     public static final CQLMetrics metrics = new CQLMetrics();
+
+
+    private static final String msg = "Performance Tip: This query contains literal values in the WHERE clause. " +
+                 "Using '?' placeholders (bind markers) is much more efficient. " +
+                 "It allows the server to cache this query once and reuse it for different values, " +
+                 "reducing memory usage and improving speed.";
 
     // Paging size to use when preloading prepared statements.
     public static final int PRELOAD_PREPARED_STATEMENTS_FETCH_SIZE = 5000;
@@ -499,7 +506,7 @@ public class QueryProcessor implements QueryHandler
         CQLStatement statement = raw.prepare(clientState);
         statement.validate(clientState);
 
-        if (!isInternal)
+        if (!isInternal && !clientState.isInternal)
         {
             checkMispreparedGuardrail(statement, clientState);
         }
@@ -524,26 +531,20 @@ public class QueryProcessor implements QueryHandler
 
     private static void checkMispreparedGuardrail(CQLStatement statement, ClientState clientState)
     {
-        if (clientState.isInternal)
-        {
+        AuthenticatedUser user = clientState.getUser();
+        if (user != null && user.isSuper())
             return;
-        }
 
-        if (isMisprepared(statement))
+        if (Guardrails.mispreparedStatementsEnabled.enabled(clientState))
         {
-            if (Guardrails.MispreparedStatementsEnabled.enabled(clientState))
+            if (isMisprepared(statement))
+                Guardrails.mispreparedStatementsEnabled.ensureEnabled(clientState);
+        }
+        else
+        {
+            if (isMisprepared(statement))
             {
-                Guardrails.MispreparedStatementsEnabled.ensureEnabled(clientState);
-            }
-            else
-            {
-                String msg = "Performance Tip: This query contains literal values in the WHERE clause. " +
-                             "Using '?' placeholders (bind markers) is much more efficient. " +
-                             "It allows the server to cache this query once and reuse it for different values, " +
-                             "reducing memory usage and improving speed.";
-
                 ClientWarn.instance.warn(msg);
-
                 NoSpamLogger.log(logger, NoSpamLogger.Level.WARN, 1, TimeUnit.MINUTES,
                                  "Client {} prepared a non-reusable query: {}",
                                  clientState.getRemoteAddress(), statement);
