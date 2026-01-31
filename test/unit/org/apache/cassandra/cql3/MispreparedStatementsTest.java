@@ -79,7 +79,7 @@ public class MispreparedStatementsTest extends CQLTester
 
         state.login(nonSuperUser);
         state.setKeyspace(KEYSPACE);
-        createTable("CREATE TABLE %s (id int PRIMARY KEY, val text)");
+        createTable("CREATE TABLE %s (id int, description text, name text, PRIMARY KEY (id, name))");
     }
 
     @After
@@ -89,7 +89,7 @@ public class MispreparedStatementsTest extends CQLTester
     }
 
     @Test
-    public void testSelectGuardrail()
+    public void testSelectWithPartitionKey()
     {
         String query = String.format("SELECT * FROM %s WHERE id = 1", currentTable());
         try
@@ -103,12 +103,73 @@ public class MispreparedStatementsTest extends CQLTester
         }
     }
 
+    @Test
+    public void testSelectWithClusteringKey()
+    {
+        String query = String.format("SELECT * FROM %s WHERE name = 'v1' ALLOW FILTERING", currentTable());
+        try
+        {
+            QueryProcessor.instance.prepare(query, state);
+            Assert.fail("Expected guardrail error for mis-prepared SELECT statement");
+        }
+        catch (Exception e)
+        {
+            assertTrue("Expected guardrail error, but got: " + e.getMessage(), e.getMessage().contains("Mis-prepared statements is not allowed"));
+        }
+    }
+
+    @Test
+    public void testInsertJsonGuardrail()
+    {
+        String query = String.format("INSERT INTO %s JSON '{\"id\": 1, \"name\": \"v1\"}'", currentTable());
+        try
+        {
+            QueryProcessor.instance.prepare(query, state);
+            Assert.fail("Expected guardrail error for INSERT JSON literal");
+        }
+        catch (Exception e)
+        {
+            assertTrue(e.getMessage().contains("Mis-prepared statements is not allowed"));
+        }
+    }
+
+    @Test
+    public void testUpdateWithIfConditionLiteralShouldFail()
+    {
+        String query = String.format("UPDATE %s SET description = 'v2' WHERE id = 1 AND name = 'v1' IF description = 'v0'", currentTable());
+        try
+        {
+            QueryProcessor.instance.prepare(query, state);
+            Assert.fail("Expected guardrail error because ZERO bind markers are present");
+        }
+        catch (Exception e)
+        {
+            assertTrue(e.getMessage().contains("Mis-prepared statements is not allowed"));
+        }
+    }
+
+
+    @Test
+    public void testSelectWithFullPrimaryKey()
+    {
+        String query = String.format("SELECT * FROM %s WHERE id = 1 AND name = 'v1'", currentTable());
+        try
+        {
+            QueryProcessor.instance.prepare(query, state);
+            Assert.fail("Expected guardrail error for mis-prepared SELECT statement");
+        }
+        catch (Exception e)
+        {
+            assertTrue("Expected guardrail error, but got: " + e.getMessage(), e.getMessage().contains("Mis-prepared statements is not allowed"));
+        }
+
+    }
 
     @Test
     public void testModificationGuardrail()
     {
         String fullName = KEYSPACE + '.' + currentTable();
-        String query = String.format("UPDATE %s SET val = 'new_name' WHERE id = 1", fullName);
+        String query = String.format("UPDATE %s SET description = 'new_description' WHERE id = 1 AND name = 'name'", fullName);
         try
         {
             QueryProcessor.instance.prepare(query, state);
@@ -120,12 +181,55 @@ public class MispreparedStatementsTest extends CQLTester
         }
     }
 
+    @Test
+    public void testDeleteWithFullPrimaryKey()
+    {
+        String query = String.format("DELETE FROM %s WHERE id = 1 AND name = 'v1'", currentTable());
+        try
+        {
+            QueryProcessor.instance.prepare(query, state);
+            Assert.fail("Expected guardrail error for DELETE with literals");
+        }
+        catch (Exception e)
+        {
+            assertTrue(e.getMessage().contains("Mis-prepared statements is not allowed"));
+        }
+    }
+
+    @Test
+    public void testSelectWithRangeRestriction()
+    {
+        String query = String.format("SELECT * FROM %s WHERE id = 1 AND name > 'a'", currentTable());
+        try
+        {
+            QueryProcessor.instance.prepare(query, state);
+            Assert.fail("Expected guardrail error for range query with literals");
+        }
+        catch (Exception e)
+        {
+            assertTrue(e.getMessage().contains("Mis-prepared statements is not allowed"));
+        }
+    }
+
+    @Test
+    public void testProperlyPreparedWithBindMarkers()
+    {
+        String query = String.format("SELECT * FROM %s WHERE id = ? AND name = ?", currentTable());
+        try
+        {
+            QueryProcessor.instance.prepare(query, state);
+        }
+        catch (Exception e)
+        {
+            Assert.fail("Guardrail should NOT trigger for statements using bind markers (?)");
+        }
+    }
 
     @Test
     public void testBatchGuardrail()
     {
         String tableName = currentTable();
-        String batchWithLiterals = String.format("BEGIN BATCH " + "INSERT INTO %s.%s (id, val) VALUES (1, 'v1'); " + "UPDATE %s.%s SET val = 'v2' WHERE id = 2; " + "APPLY BATCH", KEYSPACE, tableName, KEYSPACE, tableName);
+        String batchWithLiterals = String.format("BEGIN BATCH " + "INSERT INTO %s.%s (id, description, name) VALUES (1, 'v1', 'v1'); " + "UPDATE %s.%s SET description = 'v2' WHERE id = 2 AND name = 'v1'; " + "APPLY BATCH", KEYSPACE, tableName, KEYSPACE, tableName);
         try
         {
             QueryProcessor.instance.prepare(batchWithLiterals, state);
@@ -138,7 +242,7 @@ public class MispreparedStatementsTest extends CQLTester
     }
 
     @Test
-    public void testInWhereClause() throws Throwable
+    public void testSelectInRestrictionOnPartitionKey() throws Throwable
     {
         String fullTableName = KEYSPACE + '.' + currentTable();
         String query = String.format("SELECT * FROM %s WHERE id IN (1, 2, 3)", fullTableName);
@@ -153,6 +257,37 @@ public class MispreparedStatementsTest extends CQLTester
         }
     }
 
+    @Test
+    public void testSelectInRestrictionOnClusteringKey()
+    {
+        String fullTableName = KEYSPACE + '.' + currentTable();
+        String query = String.format("SELECT * FROM %s WHERE name IN ('a', 'b') ALLOW FILTERING", fullTableName);
+        try
+        {
+            QueryProcessor.instance.prepare(query, state);
+            Assert.fail("Expected guardrail error for regular user with IN clause literals");
+        }
+        catch (Exception e)
+        {
+            assertTrue("Expected guardrail error, but got: " + e.getMessage(), e.getMessage().contains("Mis-prepared statements is not allowed"));
+        }
+    }
+
+    @Test
+    public void testSelectInRestrictionOnFullPrimaryKey()
+    {
+        String fullTableName = KEYSPACE + '.' + currentTable();
+        String query = String.format("SELECT * FROM %s WHERE id IN (1, 2, 3) AND name in ('a', 'b')", fullTableName);
+        try
+        {
+            QueryProcessor.instance.prepare(query, state);
+            Assert.fail("Expected guardrail error for regular user with IN clause literals");
+        }
+        catch (Exception e)
+        {
+            assertTrue("Expected guardrail error, but got: " + e.getMessage(), e.getMessage().contains("Mis-prepared statements is not allowed"));
+        }
+    }
 
     @Test
     public void testInternalBypass()
@@ -232,8 +367,8 @@ public class MispreparedStatementsTest extends CQLTester
         DatabaseDescriptor.setUseMispreparedStatementsEnabled(true);
         String tableName = currentTable();
         String batchWithLiterals = String.format("BEGIN BATCH " +
-                                                 "INSERT INTO %s.%s (id, val) VALUES (1, 'v1'); " +
-                                                 "UPDATE %s.%s SET val = 'v2' WHERE id = 2; " +
+                                                 "INSERT INTO %s.%s (id, description, name) VALUES (1, 'v1', 'v1'); " +
+                                                 "UPDATE %s.%s SET description = 'v2' WHERE id = 2 AND name = 'v1'; " +
                                                  "APPLY BATCH", KEYSPACE, tableName, KEYSPACE, tableName);
         try
         {
