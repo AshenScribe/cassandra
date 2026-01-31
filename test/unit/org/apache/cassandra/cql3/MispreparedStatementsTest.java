@@ -79,6 +79,7 @@ public class MispreparedStatementsTest extends CQLTester
 
         state.login(nonSuperUser);
         state.setKeyspace(KEYSPACE);
+        createTable("CREATE TABLE %s (id int PRIMARY KEY, val text)");
     }
 
     @After
@@ -90,7 +91,6 @@ public class MispreparedStatementsTest extends CQLTester
     @Test
     public void testSelectGuardrail()
     {
-        createTable("CREATE TABLE %s (id int PRIMARY KEY, val text)");
         String query = String.format("SELECT * FROM %s WHERE id = 1", currentTable());
         try
         {
@@ -107,7 +107,6 @@ public class MispreparedStatementsTest extends CQLTester
     @Test
     public void testModificationGuardrail()
     {
-        createTable("CREATE TABLE %s (id int PRIMARY KEY, val text)");
         String fullName = KEYSPACE + '.' + currentTable();
         String query = String.format("UPDATE %s SET val = 'new_name' WHERE id = 1", fullName);
         try
@@ -125,7 +124,6 @@ public class MispreparedStatementsTest extends CQLTester
     @Test
     public void testBatchGuardrail()
     {
-        createTable("CREATE TABLE %s (id int PRIMARY KEY, val text)");
         String tableName = currentTable();
         String batchWithLiterals = String.format("BEGIN BATCH " + "INSERT INTO %s.%s (id, val) VALUES (1, 'v1'); " + "UPDATE %s.%s SET val = 'v2' WHERE id = 2; " + "APPLY BATCH", KEYSPACE, tableName, KEYSPACE, tableName);
         try
@@ -142,7 +140,6 @@ public class MispreparedStatementsTest extends CQLTester
     @Test
     public void testInWhereClause() throws Throwable
     {
-        createTable("CREATE TABLE %s (id int PRIMARY KEY, val text)");
         String fullTableName = KEYSPACE + '.' + currentTable();
         String query = String.format("SELECT * FROM %s WHERE id IN (1, 2, 3)", fullTableName);
         try
@@ -160,7 +157,6 @@ public class MispreparedStatementsTest extends CQLTester
     @Test
     public void testInternalBypass()
     {
-        createTable("CREATE TABLE %s (id int PRIMARY KEY, val text)");
         ClientState internalState = ClientState.forInternalCalls();
         QueryProcessor.instance.prepare("SELECT * FROM " + KEYSPACE + '.' + currentTable() + " WHERE id = 1", internalState);
     }
@@ -168,7 +164,6 @@ public class MispreparedStatementsTest extends CQLTester
     @Test
     public void testSuperUserBypass()
     {
-        createTable("CREATE TABLE %s (id int PRIMARY KEY, val text)");
         AuthenticatedUser superUser = new AuthenticatedUser("super-user")
         {
 
@@ -205,7 +200,6 @@ public class MispreparedStatementsTest extends CQLTester
     @Test
     public void testSelectAllPasses()
     {
-        createTable("CREATE TABLE %s (id int PRIMARY KEY, val text)");
         String query = String.format("SELECT * FROM %s", currentTable());
         try
         {
@@ -221,7 +215,6 @@ public class MispreparedStatementsTest extends CQLTester
     public void testGuardrailDisabledAllowsLiterals()
     {
         DatabaseDescriptor.setUseMispreparedStatementsEnabled(true);
-        createTable("CREATE TABLE %s (id int PRIMARY KEY, val text)");
         String query = String.format("SELECT * FROM %s WHERE id = 1", currentTable());
         try
         {
@@ -237,7 +230,6 @@ public class MispreparedStatementsTest extends CQLTester
     public void testGuardrailDisabledAllowsBatchLiterals()
     {
         DatabaseDescriptor.setUseMispreparedStatementsEnabled(true);
-        createTable("CREATE TABLE %s (id int PRIMARY KEY, val text)");
         String tableName = currentTable();
         String batchWithLiterals = String.format("BEGIN BATCH " +
                                                  "INSERT INTO %s.%s (id, val) VALUES (1, 'v1'); " +
