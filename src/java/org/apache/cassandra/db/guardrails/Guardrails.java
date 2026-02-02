@@ -738,6 +738,18 @@ public final class Guardrails implements GuardrailsMBean
     }
 
     @Override
+    public boolean getMispreparedStatementsEnabled()
+    {
+        return DEFAULT_CONFIG.getMispreparedStatementsEnabled();
+    }
+
+    @Override
+    public void setMispreparedStatementsEnabled(boolean enabled)
+    {
+        DEFAULT_CONFIG.setMispreparedStatementsEnabled(enabled);
+    }
+
+    @Override
     public int getTablesWarnThreshold()
     {
         return DEFAULT_CONFIG.getTablesWarnThreshold();

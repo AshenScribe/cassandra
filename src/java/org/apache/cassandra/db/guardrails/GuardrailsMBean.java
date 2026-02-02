@@ -55,6 +55,13 @@ public interface GuardrailsMBean
     void setKeyspacesThreshold(int warn, int fail);
 
     /**
+     * @return the use of misprepared statement is enabled
+     */
+    boolean getMispreparedStatementsEnabled();
+
+    void setMispreparedStatementsEnabled(boolean enabled);
+
+    /**
      * @return The threshold to warn when creating more tables than threshold.
      * -1 means disabled.
      */
