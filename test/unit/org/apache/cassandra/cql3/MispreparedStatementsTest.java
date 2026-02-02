@@ -41,7 +41,6 @@ import static org.junit.Assert.assertTrue;
 public class MispreparedStatementsTest extends CQLTester
 {
     private static final ClientState state = ClientState.forExternalCalls(new InetSocketAddress("127.0.0.1", 9042));
-    private static final String TIP = "Using '?' placeholders (bind markers) is much more efficient";
 
     @BeforeClass
     public static void setupGlobalConfig()
