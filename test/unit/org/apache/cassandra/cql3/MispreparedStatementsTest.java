@@ -379,5 +379,34 @@ public class MispreparedStatementsTest extends CQLTester
             Assert.fail("Batch with literals should be allowed when guardrail is disabled");
         }
     }
+
+    @Test
+    public void testSystemKeyspaceBypassForRegularUser()
+    {
+        String query = "SELECT * FROM system.local WHERE key = 'local'";
+        try
+        {
+            QueryProcessor.instance.prepare(query, state);
+        }
+        catch (Exception e)
+        {
+            Assert.fail("Guardrail should NOT trigger for system keyspace queries");
+        }
+    }
+
+    @Test
+    public void testLiteralInProjectionIsAllowed()
+    {
+        String query = String.format("SELECT id, (text)'const_val' FROM %s WHERE id = ?", currentTable());
+        try
+        {
+            QueryProcessor.instance.prepare(query, state);
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            Assert.fail("Guardrail should only trigger for literals in RESTRICTIONS (WHERE clause)");
+        }
+    }
 }
 
