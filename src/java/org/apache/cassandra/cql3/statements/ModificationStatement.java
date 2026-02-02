@@ -409,7 +409,21 @@ public abstract class ModificationStatement implements CQLStatement.SingleKeyspa
         checkFalse(isVirtual() && hasConditions(), "Conditional updates are not supported by virtual tables");
 
         if (attrs.isTimestampSet())
+        {
             Guardrails.userTimestampsEnabled.ensureEnabled(state);
+        }
+        // Misprepare guardrail shouldn't block system keyspaces
+        if (SchemaConstants.isSystemKeyspace(metadata.keyspace))
+            return;
+
+        boolean hasRestriction = restrictions != null &&
+                                 restrictions.hasPartitionKeyRestrictions() ||
+                                 restrictions.hasClusteringColumnsRestrictions() ||
+                                 restrictions.hasNonPrimaryKeyRestrictions();
+        if (getBindVariables().isEmpty() && hasRestriction)
+        {
+            Guardrails.onMisprepared(state);
+        }
     }
 
     public void validateDiskUsage(QueryOptions options, ClientState state)

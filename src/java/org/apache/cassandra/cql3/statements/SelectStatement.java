@@ -339,8 +339,19 @@ public class SelectStatement implements CQLStatement.SingleKeyspaceCqlStatement,
 
     public void validate(ClientState state) throws InvalidRequestException
     {
-        if (parameters.allowFiltering && !SchemaConstants.isSystemKeyspace(table.keyspace))
+        if (SchemaConstants.isSystemKeyspace(table.keyspace))
+            return;
+        if (parameters.allowFiltering)
             Guardrails.allowFilteringEnabled.ensureEnabled(state);
+        boolean hasRestrictions = restrictions != null &&
+                                  (restrictions.hasPartitionKeyRestrictions() ||
+                                  restrictions.hasClusteringColumnsRestrictions() ||
+                                  restrictions.hasNonPrimaryKeyRestrictions());
+        if (getBindVariables().isEmpty()
+            && hasRestrictions)
+        {
+            Guardrails.onMisprepared(state);
+        }
     }
 
     @Override
