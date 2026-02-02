@@ -42,7 +42,6 @@ import org.apache.cassandra.io.compress.IDictionaryCompressor;
 import org.apache.cassandra.locator.InetAddressAndPort;
 import org.apache.cassandra.schema.SystemDistributedKeyspace;
 import org.apache.cassandra.service.ClientState;
-import org.apache.cassandra.service.ClientWarn;
 import org.apache.cassandra.service.disk.usage.DiskUsageBroadcaster;
 import org.apache.cassandra.utils.JsonUtils;
 import org.apache.cassandra.utils.MBeanWrapper;
@@ -1960,7 +1959,6 @@ public final class Guardrails implements GuardrailsMBean
         mispreparedStatementsEnabled.ensureEnabled(state);
 
         // only warn if user ins't super user or a external call, these checks are handled by guardrail framework
-        ClientWarn.instance.warn(MISPREPARED_STATEMENT_WARN_MESSAGE);
         mispreparedStatementsEnabled.warn(MISPREPARED_STATEMENT_WARN_MESSAGE);
     }
 }
