@@ -43,7 +43,6 @@ import org.antlr.runtime.RecognitionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.cassandra.auth.AuthenticatedUser;
 import org.apache.cassandra.concurrent.ImmediateExecutor;
 import org.apache.cassandra.concurrent.ScheduledExecutors;
 import org.apache.cassandra.config.DatabaseDescriptor;
@@ -51,7 +50,6 @@ import org.apache.cassandra.cql3.functions.Function;
 import org.apache.cassandra.cql3.functions.FunctionName;
 import org.apache.cassandra.cql3.functions.UDAggregate;
 import org.apache.cassandra.cql3.functions.UDFunction;
-import org.apache.cassandra.cql3.restrictions.StatementRestrictions;
 import org.apache.cassandra.cql3.selection.ResultSetBuilder;
 import org.apache.cassandra.cql3.statements.BatchStatement;
 import org.apache.cassandra.cql3.statements.ModificationStatement;
@@ -66,7 +64,6 @@ import org.apache.cassandra.db.ReadQuery;
 import org.apache.cassandra.db.ReadResponse;
 import org.apache.cassandra.db.SinglePartitionReadQuery;
 import org.apache.cassandra.db.SystemKeyspace;
-import org.apache.cassandra.db.guardrails.Guardrails;
 import org.apache.cassandra.db.marshal.AbstractType;
 import org.apache.cassandra.db.partitions.PartitionIterator;
 import org.apache.cassandra.db.partitions.PartitionIterators;
@@ -91,7 +88,6 @@ import org.apache.cassandra.schema.SchemaChangeListener;
 import org.apache.cassandra.schema.SchemaConstants;
 import org.apache.cassandra.schema.TableMetadata;
 import org.apache.cassandra.service.ClientState;
-import org.apache.cassandra.service.ClientWarn;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.service.pager.QueryPager;
@@ -105,7 +101,6 @@ import org.apache.cassandra.utils.CassandraVersion;
 import org.apache.cassandra.utils.FBUtilities;
 import org.apache.cassandra.utils.JVMStabilityInspector;
 import org.apache.cassandra.utils.MD5Digest;
-import org.apache.cassandra.utils.NoSpamLogger;
 import org.apache.cassandra.utils.ObjectSizes;
 import org.apache.cassandra.utils.concurrent.Future;
 import org.apache.cassandra.utils.concurrent.FutureCombiner;
@@ -135,11 +130,6 @@ public class QueryProcessor implements QueryHandler
     // counters. Callers of processStatement are responsible for correctly notifying metrics
     public static final CQLMetrics metrics = new CQLMetrics();
 
-
-    private static final String msg = "Performance Tip: This query contains literal values in the WHERE clause. " +
-                 "Using '?' placeholders (bind markers) is much more efficient. " +
-                 "It allows the server to cache this query once and reuse it for different values, " +
-                 "reducing memory usage and improving speed.";
 
     // Paging size to use when preloading prepared statements.
     public static final int PRELOAD_PREPARED_STATEMENTS_FETCH_SIZE = 5000;
@@ -505,12 +495,6 @@ public class QueryProcessor implements QueryHandler
         // Note: if 2 threads prepare the same query, we'll live so don't bother synchronizing
         CQLStatement statement = raw.prepare(clientState);
         statement.validate(clientState);
-
-        if (!isInternal && !clientState.isInternal)
-        {
-            checkMispreparedGuardrail(statement, clientState);
-        }
-
         // Set CQL string for AlterSchemaStatement as this is used to serialize the transformation
         // in the cluster metadata log
         if (statement instanceof AlterSchemaStatement)
@@ -527,56 +511,6 @@ public class QueryProcessor implements QueryHandler
             res.pstmntSize = measurePstmnt(res);
 
         return res;
-    }
-
-    private static void checkMispreparedGuardrail(CQLStatement statement, ClientState clientState)
-    {
-        AuthenticatedUser user = clientState.getUser();
-        if (user != null && user.isSuper())
-            return;
-
-        if (Guardrails.mispreparedStatementsEnabled.enabled(clientState))
-        {
-            if (isMisprepared(statement))
-                Guardrails.mispreparedStatementsEnabled.ensureEnabled(clientState);
-        }
-        else
-        {
-            if (isMisprepared(statement))
-            {
-                ClientWarn.instance.warn(msg);
-                NoSpamLogger.log(logger, NoSpamLogger.Level.WARN, 1, TimeUnit.MINUTES,
-                                 "Client {} prepared a non-reusable query: {}",
-                                 clientState.getRemoteAddress(), statement);
-            }
-        }
-    }
-
-    private static boolean isMisprepared(CQLStatement statement)
-    {
-        if (!statement.getBindVariables().isEmpty())
-            return false;
-
-        if (statement instanceof BatchStatement)
-        {
-            for (ModificationStatement subStmt : ((BatchStatement) statement).getStatements())
-            {
-                if (isMisprepared(subStmt))
-                    return true;
-            }
-            return false;
-        }
-
-        StatementRestrictions restrictions = null;
-        if (statement instanceof SelectStatement)
-            restrictions = ((SelectStatement) statement).getRestrictions();
-        else if (statement instanceof ModificationStatement)
-            restrictions = ((ModificationStatement) statement).getRestrictions();
-
-        return (restrictions != null &&
-                (restrictions.hasPartitionKeyRestrictions()
-                 || restrictions.hasClusteringColumnsRestrictions()
-                 || restrictions.hasNonPrimaryKeyRestrictions()));
     }
 
     public static UntypedResultSet executeInternal(String query, Object... values)

@@ -19,6 +19,7 @@
 package org.apache.cassandra.cql3;
 
 import java.net.InetSocketAddress;
+import java.util.List;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -30,14 +31,17 @@ import org.apache.cassandra.auth.AuthenticatedUser;
 import org.apache.cassandra.auth.CassandraAuthorizer;
 import org.apache.cassandra.auth.PasswordAuthenticator;
 import org.apache.cassandra.config.DatabaseDescriptor;
+import org.apache.cassandra.db.guardrails.GuardrailViolatedException;
+import org.apache.cassandra.db.guardrails.Guardrails;
 import org.apache.cassandra.service.ClientState;
+import org.apache.cassandra.service.ClientWarn;
 
 import static org.junit.Assert.assertTrue;
 
 public class MispreparedStatementsTest extends CQLTester
 {
-
     private static final ClientState state = ClientState.forExternalCalls(new InetSocketAddress("127.0.0.1", 9042));
+    private static final String TIP = "Using '?' placeholders (bind markers) is much more efficient";
 
     @BeforeClass
     public static void setupGlobalConfig()
@@ -79,6 +83,7 @@ public class MispreparedStatementsTest extends CQLTester
 
         state.login(nonSuperUser);
         state.setKeyspace(KEYSPACE);
+        ClientWarn.instance.captureWarnings();
         createTable("CREATE TABLE %s (id int, description text, name text, PRIMARY KEY (id, name))");
     }
 
@@ -91,209 +96,119 @@ public class MispreparedStatementsTest extends CQLTester
     @Test
     public void testSelectWithPartitionKey()
     {
-        String query = String.format("SELECT * FROM %s WHERE id = 1", currentTable());
-        try
-        {
-            QueryProcessor.instance.prepare(query, state);
-            Assert.fail("Expected guardrail error for mis-prepared SELECT statement");
-        }
-        catch (Exception e)
-        {
-            assertTrue("Expected guardrail error, but got: " + e.getMessage(), e.getMessage().contains("Mis-prepared statements is not allowed"));
-        }
+        assertGuardrailViolated(String.format("SELECT * FROM %s WHERE id = 1", currentTable()));
     }
 
     @Test
     public void testSelectWithClusteringKey()
     {
-        String query = String.format("SELECT * FROM %s WHERE name = 'v1' ALLOW FILTERING", currentTable());
-        try
-        {
-            QueryProcessor.instance.prepare(query, state);
-            Assert.fail("Expected guardrail error for mis-prepared SELECT statement");
-        }
-        catch (Exception e)
-        {
-            assertTrue("Expected guardrail error, but got: " + e.getMessage(), e.getMessage().contains("Mis-prepared statements is not allowed"));
-        }
+        assertGuardrailViolated(String.format("SELECT * FROM %s WHERE name = 'v1' ALLOW FILTERING", currentTable()));
     }
-
-    @Test
-    public void testInsertJsonGuardrail()
-    {
-        String query = String.format("INSERT INTO %s JSON '{\"id\": 1, \"name\": \"v1\"}'", currentTable());
-        try
-        {
-            QueryProcessor.instance.prepare(query, state);
-            Assert.fail("Expected guardrail error for INSERT JSON literal");
-        }
-        catch (Exception e)
-        {
-            assertTrue(e.getMessage().contains("Mis-prepared statements is not allowed"));
-        }
-    }
-
-    @Test
-    public void testUpdateWithIfConditionLiteralShouldFail()
-    {
-        String query = String.format("UPDATE %s SET description = 'v2' WHERE id = 1 AND name = 'v1' IF description = 'v0'", currentTable());
-        try
-        {
-            QueryProcessor.instance.prepare(query, state);
-            Assert.fail("Expected guardrail error because ZERO bind markers are present");
-        }
-        catch (Exception e)
-        {
-            assertTrue(e.getMessage().contains("Mis-prepared statements is not allowed"));
-        }
-    }
-
 
     @Test
     public void testSelectWithFullPrimaryKey()
     {
-        String query = String.format("SELECT * FROM %s WHERE id = 1 AND name = 'v1'", currentTable());
-        try
-        {
-            QueryProcessor.instance.prepare(query, state);
-            Assert.fail("Expected guardrail error for mis-prepared SELECT statement");
-        }
-        catch (Exception e)
-        {
-            assertTrue("Expected guardrail error, but got: " + e.getMessage(), e.getMessage().contains("Mis-prepared statements is not allowed"));
-        }
-
-    }
-
-    @Test
-    public void testModificationGuardrail()
-    {
-        String fullName = KEYSPACE + '.' + currentTable();
-        String query = String.format("UPDATE %s SET description = 'new_description' WHERE id = 1 AND name = 'name'", fullName);
-        try
-        {
-            QueryProcessor.instance.prepare(query, state);
-            Assert.fail("Expected guardrail error");
-        }
-        catch (Exception e)
-        {
-            assertTrue("Expected guardrail error, but got: " + e.getMessage(), e.getMessage().contains("Mis-prepared statements is not allowed"));
-        }
-    }
-
-    @Test
-    public void testDeleteWithFullPrimaryKey()
-    {
-        String query = String.format("DELETE FROM %s WHERE id = 1 AND name = 'v1'", currentTable());
-        try
-        {
-            QueryProcessor.instance.prepare(query, state);
-            Assert.fail("Expected guardrail error for DELETE with literals");
-        }
-        catch (Exception e)
-        {
-            assertTrue(e.getMessage().contains("Mis-prepared statements is not allowed"));
-        }
+        assertGuardrailViolated(String.format("SELECT * FROM %s WHERE id = 1 AND name = 'v1'", currentTable()));
     }
 
     @Test
     public void testSelectWithRangeRestriction()
     {
-        String query = String.format("SELECT * FROM %s WHERE id = 1 AND name > 'a'", currentTable());
-        try
-        {
-            QueryProcessor.instance.prepare(query, state);
-            Assert.fail("Expected guardrail error for range query with literals");
-        }
-        catch (Exception e)
-        {
-            assertTrue(e.getMessage().contains("Mis-prepared statements is not allowed"));
-        }
+        assertGuardrailViolated(String.format("SELECT * FROM %s WHERE id = 1 AND name > 'a'", currentTable()));
     }
 
     @Test
-    public void testProperlyPreparedWithBindMarkers()
+    public void testSelectInRestrictionOnPartitionKey()
     {
-        String query = String.format("SELECT * FROM %s WHERE id = ? AND name = ?", currentTable());
-        try
-        {
-            QueryProcessor.instance.prepare(query, state);
-        }
-        catch (Exception e)
-        {
-            Assert.fail("Guardrail should NOT trigger for statements using bind markers (?)");
-        }
+        assertGuardrailViolated(String.format("SELECT * FROM %s WHERE id IN (1, 2, 3)", currentTable()));
+    }
+
+    @Test
+    public void testSelectInRestrictionOnClusteringKey()
+    {
+        assertGuardrailViolated(String.format("SELECT * FROM %s WHERE name IN ('a', 'b') ALLOW FILTERING", currentTable()));
+    }
+
+    @Test
+    public void testSelectInRestrictionOnFullPrimaryKey()
+    {
+        assertGuardrailViolated(String.format("SELECT * FROM %s WHERE id IN (1, 2, 3) AND name in ('a', 'b')", currentTable()));
+    }
+
+    @Test
+    public void testInsertJsonGuardrail()
+    {
+        assertGuardrailViolated(String.format("INSERT INTO %s JSON '{\"id\": 1, \"name\": \"v1\"}'", currentTable()));
+    }
+
+    @Test
+    public void testUpdateWithPartitionKey()
+    {
+        assertGuardrailViolated(String.format("UPDATE %s SET description = 'new' WHERE id = 1 AND name = 'name'", KEYSPACE + '.' + currentTable()));
+    }
+
+    @Test
+    public void testUpdateWithIfCondition()
+    {
+        assertGuardrailViolated(String.format("UPDATE %s SET description = 'v2' WHERE id = 1 AND name = 'v1' IF description = 'v0'", currentTable()));
+    }
+
+    @Test
+    public void testDeleteWithFullPrimaryKey()
+    {
+        assertGuardrailViolated(String.format("DELETE FROM %s WHERE id = 1 AND name = 'v1'", currentTable()));
     }
 
     @Test
     public void testBatchGuardrail()
     {
         String tableName = currentTable();
-        String batchWithLiterals = String.format("BEGIN BATCH " + "INSERT INTO %s.%s (id, description, name) VALUES (1, 'v1', 'v1'); " + "UPDATE %s.%s SET description = 'v2' WHERE id = 2 AND name = 'v1'; " + "APPLY BATCH", KEYSPACE, tableName, KEYSPACE, tableName);
-        try
-        {
-            QueryProcessor.instance.prepare(batchWithLiterals, state);
-            Assert.fail("Expected guardrail error for BATCH with literals");
-        }
-        catch (Exception e)
-        {
-            assertTrue("Expected guardrail error, but got: " + e.getMessage(), e.getMessage().contains("Mis-prepared statements is not allowed"));
-        }
+        assertGuardrailViolated(String.format("BEGIN BATCH " +
+                                              "INSERT INTO %s.%s (id, description, name) VALUES (1, 'v1', 'v1'); " +
+                                              "UPDATE %s.%s SET description = 'v2' WHERE id = 2 AND name = 'v1'; " +
+                                              "APPLY BATCH", KEYSPACE, tableName, KEYSPACE, tableName));
     }
 
     @Test
-    public void testSelectInRestrictionOnPartitionKey() throws Throwable
+    public void testMultiTableBatchGuardrail()
     {
-        String fullTableName = KEYSPACE + '.' + currentTable();
-        String query = String.format("SELECT * FROM %s WHERE id IN (1, 2, 3)", fullTableName);
-        try
-        {
-            QueryProcessor.instance.prepare(query, state);
-            Assert.fail("Expected guardrail error for regular user with IN clause literals");
-        }
-        catch (Exception e)
-        {
-            assertTrue("Expected guardrail error, but got: " + e.getMessage(), e.getMessage().contains("Mis-prepared statements is not allowed"));
-        }
+        String table1 = currentTable();
+        String table2 = createTable("CREATE TABLE %s (id int PRIMARY KEY, val text)");
+        String query = String.format("BEGIN BATCH " +
+                                     "UPDATE %s.%s SET description = 'v1' WHERE id = 1 AND name = 'n1'; " +
+                                     "INSERT INTO %s.%s (id, val) VALUES (2, 'v2'); " +
+                                     "APPLY BATCH",
+                                     KEYSPACE, table1, KEYSPACE, table2);
+
+        DatabaseDescriptor.setMispreparedStatementsEnabled(false);
+        assertGuardrailViolated(query);
+
+        DatabaseDescriptor.setMispreparedStatementsEnabled(true);
+        assertGuardrailPassed(query);
     }
 
     @Test
-    public void testSelectInRestrictionOnClusteringKey()
+    public void testProperlyPreparedWithBindMarkers()
     {
-        String fullTableName = KEYSPACE + '.' + currentTable();
-        String query = String.format("SELECT * FROM %s WHERE name IN ('a', 'b') ALLOW FILTERING", fullTableName);
-        try
-        {
-            QueryProcessor.instance.prepare(query, state);
-            Assert.fail("Expected guardrail error for regular user with IN clause literals");
-        }
-        catch (Exception e)
-        {
-            assertTrue("Expected guardrail error, but got: " + e.getMessage(), e.getMessage().contains("Mis-prepared statements is not allowed"));
-        }
+        assertGuardrailPassed(String.format("SELECT * FROM %s WHERE id = ? AND name = ?", currentTable()));
     }
 
     @Test
-    public void testSelectInRestrictionOnFullPrimaryKey()
+    public void testSelectAllPasses()
     {
-        String fullTableName = KEYSPACE + '.' + currentTable();
-        String query = String.format("SELECT * FROM %s WHERE id IN (1, 2, 3) AND name in ('a', 'b')", fullTableName);
-        try
-        {
-            QueryProcessor.instance.prepare(query, state);
-            Assert.fail("Expected guardrail error for regular user with IN clause literals");
-        }
-        catch (Exception e)
-        {
-            assertTrue("Expected guardrail error, but got: " + e.getMessage(), e.getMessage().contains("Mis-prepared statements is not allowed"));
-        }
+        assertGuardrailPassed(String.format("SELECT * FROM %s", currentTable()));
+    }
+
+    @Test
+    public void testLiteralInProjectionIsAllowed()
+    {
+        assertGuardrailPassed(String.format("SELECT id, (text)'const_val' FROM %s WHERE id = ?", currentTable()));
     }
 
     @Test
     public void testInternalBypass()
     {
-        ClientState internalState = ClientState.forInternalCalls();
-        QueryProcessor.instance.prepare("SELECT * FROM " + KEYSPACE + '.' + currentTable() + " WHERE id = 1", internalState);
+        assertGuardrailPassed("SELECT * FROM " + KEYSPACE + '.' + currentTable() + " WHERE id = 1", ClientState.forInternalCalls());
     }
 
     @Test
@@ -301,7 +216,6 @@ public class MispreparedStatementsTest extends CQLTester
     {
         AuthenticatedUser superUser = new AuthenticatedUser("super-user")
         {
-
             @Override
             public boolean isSuper()
             {
@@ -326,39 +240,33 @@ public class MispreparedStatementsTest extends CQLTester
                 return true;
             }
         };
-
         ClientState superUserState = ClientState.forExternalCalls(new InetSocketAddress("127.0.0.1", 9042));
         superUserState.login(superUser);
-        QueryProcessor.instance.prepare("SELECT * FROM " + KEYSPACE + '.' + currentTable() + " WHERE id = 1", superUserState);
+        assertGuardrailPassed("SELECT * FROM " + KEYSPACE + '.' + currentTable() + " WHERE id = 1", superUserState);
     }
 
     @Test
-    public void testSelectAllPasses()
+    public void testSystemKeyspaceBypassForRegularUser()
     {
-        String query = String.format("SELECT * FROM %s", currentTable());
-        try
-        {
-            QueryProcessor.instance.prepare(query, state);
-        }
-        catch (Exception e)
-        {
-            Assert.fail("Did not expect guardrail error for SELECT * statement");
-        }
+        assertGuardrailPassed("SELECT * FROM system.local WHERE key = 'local'");
     }
 
     @Test
     public void testGuardrailDisabledAllowsLiterals()
     {
         DatabaseDescriptor.setMispreparedStatementsEnabled(true);
-        String query = String.format("SELECT * FROM %s WHERE id = 1", currentTable());
-        try
-        {
-            QueryProcessor.instance.prepare(query, state);
-        }
-        catch (Exception e)
-        {
-            Assert.fail("Guardrail should NOT have triggered because it is disabled (set to true)");
-        }
+        assertGuardrailPassed(String.format("SELECT * FROM %s WHERE id = 1", currentTable()));
+    }
+
+    @Test
+    public void testWarningIsIssuedWhenGuardrailIsAllowed()
+    {
+        DatabaseDescriptor.setMispreparedStatementsEnabled(true);
+        ClientWarn.instance.captureWarnings();
+        assertGuardrailPassed(String.format("SELECT * FROM %s WHERE id = 1", currentTable()));
+        List<String> warnings = ClientWarn.instance.getWarnings();
+        Assert.assertNotNull(warnings);
+        assertTrue(warnings.stream().anyMatch(w -> w.contains("Using '?' placeholders (bind markers) is much more efficient")));
     }
 
     @Test
@@ -366,47 +274,47 @@ public class MispreparedStatementsTest extends CQLTester
     {
         DatabaseDescriptor.setMispreparedStatementsEnabled(true);
         String tableName = currentTable();
-        String batchWithLiterals = String.format("BEGIN BATCH " +
-                                                 "INSERT INTO %s.%s (id, description, name) VALUES (1, 'v1', 'v1'); " +
-                                                 "UPDATE %s.%s SET description = 'v2' WHERE id = 2 AND name = 'v1'; " +
-                                                 "APPLY BATCH", KEYSPACE, tableName, KEYSPACE, tableName);
+        assertGuardrailPassed(String.format("BEGIN BATCH " +
+                                            "INSERT INTO %s.%s (id, description, name) VALUES (1, 'v1', 'v1'); " +
+                                            "UPDATE %s.%s SET description = 'v2' WHERE id = 2 AND name = 'v1'; " +
+                                            "APPLY BATCH", KEYSPACE, tableName, KEYSPACE, tableName));
+    }
+
+    private void assertGuardrailViolated(String query)
+    {
         try
         {
-            QueryProcessor.instance.prepare(batchWithLiterals, state);
+            ClientWarn.instance.captureWarnings();
+            QueryProcessor.instance.prepare(query, state);
+            Assert.fail("Expected GuardrailViolatedException for query: " + query);
         }
         catch (Exception e)
         {
-            Assert.fail("Batch with literals should be allowed when guardrail is disabled");
+            assertTrue(e instanceof GuardrailViolatedException);
+            List<String> warnings = ClientWarn.instance.getWarnings();
+            if (warnings != null)
+            {
+                assertTrue("Performance tip should not be issued when blocking",
+                           warnings.stream().noneMatch(w -> w.contains(Guardrails.MISPREPARED_STATEMENT_WARN_MESSAGE)));
+            }
+            assertTrue(e.getMessage().contains("Mis-prepared statements is not allowed"));
         }
     }
 
-    @Test
-    public void testSystemKeyspaceBypassForRegularUser()
+    private void assertGuardrailPassed(String query)
     {
-        String query = "SELECT * FROM system.local WHERE key = 'local'";
-        try
-        {
-            QueryProcessor.instance.prepare(query, state);
-        }
-        catch (Exception e)
-        {
-            Assert.fail("Guardrail should NOT trigger for system keyspace queries");
-        }
+        assertGuardrailPassed(query, state);
     }
 
-    @Test
-    public void testLiteralInProjectionIsAllowed()
+    private void assertGuardrailPassed(String query, ClientState clientState)
     {
-        String query = String.format("SELECT id, (text)'const_val' FROM %s WHERE id = ?", currentTable());
         try
         {
-            QueryProcessor.instance.prepare(query, state);
+            QueryProcessor.instance.prepare(query, clientState);
         }
         catch (Exception e)
         {
-            e.printStackTrace();
-            Assert.fail("Guardrail should only trigger for literals in RESTRICTIONS (WHERE clause)");
+            Assert.fail("Expected guardrail to pass, but got: " + e.getMessage());
         }
     }
 }
-

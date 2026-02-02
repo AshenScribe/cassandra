@@ -40,6 +40,7 @@ import org.apache.cassandra.db.ConsistencyLevel;
 import org.apache.cassandra.db.compaction.TimeWindowCompactionStrategy;
 import org.apache.cassandra.locator.InetAddressAndPort;
 import org.apache.cassandra.service.ClientState;
+import org.apache.cassandra.service.ClientWarn;
 import org.apache.cassandra.service.disk.usage.DiskUsageBroadcaster;
 import org.apache.cassandra.utils.JsonUtils;
 import org.apache.cassandra.utils.MBeanWrapper;
@@ -54,6 +55,9 @@ public final class Guardrails implements GuardrailsMBean
     public static final String MBEAN_NAME = "org.apache.cassandra.db:type=Guardrails";
 
     public static final GuardrailsConfigProvider CONFIG_PROVIDER = GuardrailsConfigProvider.instance;
+
+    public static final String MISPREPARED_STATEMENT_WARN_MESSAGE = "Performance Tip: This query contains literal values in the WHERE clause. " + "Using '?' placeholders (bind markers) is much more efficient. " + "It allows the server to cache this query once and reuse it for different values, " + "reducing memory usage and improving speed.";
+
     private static final GuardrailsOptions DEFAULT_CONFIG = DatabaseDescriptor.getGuardrailsConfig();
 
     @VisibleForTesting
@@ -1898,5 +1902,14 @@ public final class Guardrails implements GuardrailsMBean
         return duration == null
                ? Long.MIN_VALUE
                : (ClientState.getLastTimestampMicros() - duration.toMicroseconds());
+    }
+
+    public static void onMisprepared(ClientState state)
+    {
+        mispreparedStatementsEnabled.ensureEnabled(state);
+
+        // only warn if user ins't super user or a external call, these checks are handled by guardrail framework
+        ClientWarn.instance.warn(MISPREPARED_STATEMENT_WARN_MESSAGE);
+        mispreparedStatementsEnabled.warn(MISPREPARED_STATEMENT_WARN_MESSAGE);
     }
 }

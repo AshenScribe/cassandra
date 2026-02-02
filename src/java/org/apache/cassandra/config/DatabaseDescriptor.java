@@ -5490,11 +5490,7 @@ public class DatabaseDescriptor
 
     public static void setMispreparedStatementsEnabled(boolean enabled)
     {
-        if (enabled != conf.misprepared_statements_enabled)
-        {
-            logger.info("Setting misprepare_statements_enabled to {}", enabled);
-            conf.misprepared_statements_enabled = enabled;
-        }
+        conf.misprepared_statements_enabled = enabled;
     }
 
     public static AccordSpec getAccord()
