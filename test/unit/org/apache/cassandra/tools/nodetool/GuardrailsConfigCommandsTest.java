@@ -208,8 +208,8 @@ public class GuardrailsConfigCommandsTest extends CQLTester
     "group_by_enabled                                 true\n"  +
     "intersect_filtering_query_enabled                true\n"  +
     "intersect_filtering_query_warned                 true\n"  +
+    "misprepared_statements_enabled                   true\n"  +
     "non_partition_restricted_index_query_enabled     true\n"  +
-    "misprepared_statements_enabled                   false\n" +
     "read_before_write_list_operations_enabled        true\n"  +
     "secondary_indexes_enabled                        true\n"  +
     "simplestrategy_enabled                           true\n"  +
