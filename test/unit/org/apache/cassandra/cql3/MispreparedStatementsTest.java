@@ -96,66 +96,77 @@ public class MispreparedStatementsTest extends CQLTester
     public void testSelectWithPartitionKey()
     {
         assertGuardrailViolated(String.format("SELECT * FROM %s WHERE id = 1", currentTable()));
+        assertNoWarnings();
     }
 
     @Test
     public void testSelectWithClusteringKey()
     {
         assertGuardrailViolated(String.format("SELECT * FROM %s WHERE name = 'v1' ALLOW FILTERING", currentTable()));
+        assertNoWarnings();
     }
 
     @Test
     public void testSelectWithFullPrimaryKey()
     {
         assertGuardrailViolated(String.format("SELECT * FROM %s WHERE id = 1 AND name = 'v1'", currentTable()));
+        assertNoWarnings();
     }
 
     @Test
     public void testSelectWithRangeRestriction()
     {
         assertGuardrailViolated(String.format("SELECT * FROM %s WHERE id = 1 AND name > 'a'", currentTable()));
+        assertNoWarnings();
     }
 
     @Test
     public void testSelectInRestrictionOnPartitionKey()
     {
         assertGuardrailViolated(String.format("SELECT * FROM %s WHERE id IN (1, 2, 3)", currentTable()));
+        assertNoWarnings();
     }
 
     @Test
     public void testSelectInRestrictionOnClusteringKey()
     {
         assertGuardrailViolated(String.format("SELECT * FROM %s WHERE name IN ('a', 'b') ALLOW FILTERING", currentTable()));
+        assertNoWarnings();
     }
 
     @Test
     public void testSelectInRestrictionOnFullPrimaryKey()
     {
         assertGuardrailViolated(String.format("SELECT * FROM %s WHERE id IN (1, 2, 3) AND name in ('a', 'b')", currentTable()));
+        assertNoWarnings();
     }
 
     @Test
     public void testInsertJsonGuardrail()
     {
         assertGuardrailViolated(String.format("INSERT INTO %s JSON '{\"id\": 1, \"name\": \"v1\"}'", currentTable()));
+        assertNoWarnings();
     }
 
     @Test
     public void testUpdateWithPartitionKey()
     {
         assertGuardrailViolated(String.format("UPDATE %s SET description = 'new' WHERE id = 1 AND name = 'name'", KEYSPACE + '.' + currentTable()));
+        assertNoWarnings();
     }
 
     @Test
     public void testUpdateWithIfCondition()
     {
         assertGuardrailViolated(String.format("UPDATE %s SET description = 'v2' WHERE id = 1 AND name = 'v1' IF description = 'v0'", currentTable()));
+        assertNoWarnings();
     }
 
     @Test
     public void testDeleteWithFullPrimaryKey()
     {
         assertGuardrailViolated(String.format("DELETE FROM %s WHERE id = 1 AND name = 'v1'", currentTable()));
+        assertNoWarnings();
     }
 
     @Test
@@ -166,6 +177,7 @@ public class MispreparedStatementsTest extends CQLTester
                                               "INSERT INTO %s.%s (id, description, name) VALUES (1, 'v1', 'v1'); " +
                                               "UPDATE %s.%s SET description = 'v2' WHERE id = 2 AND name = 'v1'; " +
                                               "APPLY BATCH", KEYSPACE, tableName, KEYSPACE, tableName));
+        assertNoWarnings();
     }
 
     @Test
@@ -179,35 +191,36 @@ public class MispreparedStatementsTest extends CQLTester
                                      "APPLY BATCH",
                                      KEYSPACE, table1, KEYSPACE, table2);
 
-        DatabaseDescriptor.setMispreparedStatementsEnabled(false);
         assertGuardrailViolated(query);
-
-        DatabaseDescriptor.setMispreparedStatementsEnabled(true);
-        assertGuardrailPassed(query);
+        assertNoWarnings();
     }
 
     @Test
     public void testProperlyPreparedWithBindMarkers()
     {
         assertGuardrailPassed(String.format("SELECT * FROM %s WHERE id = ? AND name = ?", currentTable()));
+        assertNoWarnings();
     }
 
     @Test
     public void testSelectAllPasses()
     {
         assertGuardrailPassed(String.format("SELECT * FROM %s", currentTable()));
+        assertNoWarnings();
     }
 
     @Test
     public void testLiteralInProjectionIsAllowed()
     {
         assertGuardrailPassed(String.format("SELECT id, (text)'const_val' FROM %s WHERE id = ?", currentTable()));
+        assertNoWarnings();
     }
 
     @Test
     public void testInternalBypass()
     {
         assertGuardrailPassed("SELECT * FROM " + KEYSPACE + '.' + currentTable() + " WHERE id = 1", ClientState.forInternalCalls());
+        assertNoWarnings();
     }
 
     @Test
@@ -242,12 +255,14 @@ public class MispreparedStatementsTest extends CQLTester
         ClientState superUserState = ClientState.forExternalCalls(new InetSocketAddress("127.0.0.1", 9042));
         superUserState.login(superUser);
         assertGuardrailPassed("SELECT * FROM " + KEYSPACE + '.' + currentTable() + " WHERE id = 1", superUserState);
+        assertNoWarnings();
     }
 
     @Test
     public void testSystemKeyspaceBypassForRegularUser()
     {
         assertGuardrailPassed("SELECT * FROM system.local WHERE key = 'local'");
+        assertNoWarnings();
     }
 
     @Test
@@ -255,6 +270,7 @@ public class MispreparedStatementsTest extends CQLTester
     {
         DatabaseDescriptor.setMispreparedStatementsEnabled(true);
         assertGuardrailPassed(String.format("SELECT * FROM %s WHERE id = 1", currentTable()));
+        assertWarnings();
     }
 
     @Test
@@ -263,9 +279,8 @@ public class MispreparedStatementsTest extends CQLTester
         DatabaseDescriptor.setMispreparedStatementsEnabled(true);
         ClientWarn.instance.captureWarnings();
         assertGuardrailPassed(String.format("SELECT * FROM %s WHERE id = 1", currentTable()));
-        List<String> warnings = ClientWarn.instance.getWarnings();
-        Assert.assertNotNull(warnings);
-        assertTrue(warnings.stream().anyMatch(w -> w.contains("Using '?' placeholders (bind markers) is much more efficient")));
+        assertWarnings();
+
     }
 
     @Test
@@ -277,27 +292,61 @@ public class MispreparedStatementsTest extends CQLTester
                                             "INSERT INTO %s.%s (id, description, name) VALUES (1, 'v1', 'v1'); " +
                                             "UPDATE %s.%s SET description = 'v2' WHERE id = 2 AND name = 'v1'; " +
                                             "APPLY BATCH", KEYSPACE, tableName, KEYSPACE, tableName));
+        assertWarnings();
+    }
+
+    @Test
+    public void testBlockedStatementsDoNotEnterCache()
+    {
+        QueryProcessor.clearPreparedStatementsCache();
+        int initialCacheSize = QueryProcessor.preparedStatementsCount();
+        for (int i = 0; i < 10; i++)
+        {
+            String query = String.format("SELECT * FROM %s WHERE id = %d", currentTable(), i);
+            try
+            {
+                QueryProcessor.instance.prepare(query, state);
+            }
+            catch (Exception e)
+            {
+                // Expected: Guardrail throws exception
+            }
+        }
+        Assert.assertEquals("Blocked misprepared statements should not be added to the cache", initialCacheSize, QueryProcessor.preparedStatementsCount());
     }
 
     private void assertGuardrailViolated(String query)
     {
         try
         {
-            ClientWarn.instance.captureWarnings();
             QueryProcessor.instance.prepare(query, state);
             Assert.fail("Expected GuardrailViolatedException for query: " + query);
         }
-        catch (Exception e)
+        catch (GuardrailViolatedException e)
         {
-            assertTrue(e instanceof GuardrailViolatedException);
-            List<String> warnings = ClientWarn.instance.getWarnings();
-            if (warnings != null)
-            {
-                assertTrue("Performance tip should not be issued when blocking",
-                           warnings.stream().noneMatch(w -> w.contains(Guardrails.MISPREPARED_STATEMENT_WARN_MESSAGE)));
-            }
             assertTrue(e.getMessage().contains("Mis-prepared statements is not allowed"));
         }
+        catch (Exception e)
+        {
+            Assert.fail(e.getMessage());
+        }
+    }
+
+    private void assertNoWarnings()
+    {
+        List<String> warnings = ClientWarn.instance.getWarnings();
+        if (warnings != null)
+        {
+            assertTrue("Expected performance tip warning was found",
+                       warnings.stream().noneMatch(w -> w.contains(Guardrails.MISPREPARED_STATEMENT_WARN_MESSAGE)));
+        }
+    }
+
+    private void assertWarnings()
+    {
+        List<String> warnings = ClientWarn.instance.getWarnings();
+        assertTrue("Expedted performance tip warning was not found",
+                   warnings.stream().anyMatch(w -> w.contains(Guardrails.MISPREPARED_STATEMENT_WARN_MESSAGE)));
     }
 
     private void assertGuardrailPassed(String query)
