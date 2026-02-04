@@ -1958,7 +1958,10 @@ public final class Guardrails implements GuardrailsMBean
     {
         mispreparedStatementsEnabled.ensureEnabled(state);
 
-        // only warn if user ins't super user or a external call, these checks are handled by guardrail framework
-        mispreparedStatementsEnabled.warn(MISPREPARED_STATEMENT_WARN_MESSAGE);
+        // only warn if user ins't super user or a external call
+        if (!state.isInternal && !state.isSuper())
+        {
+            mispreparedStatementsEnabled.warn(MISPREPARED_STATEMENT_WARN_MESSAGE);
+        }
     }
 }
