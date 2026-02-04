@@ -794,6 +794,8 @@ public class DatabaseDescriptorTest
             DatabaseDescriptor.setMispreparedStatementsEnabled(false);
             Assert.assertFalse("Value should be false after setting to false",
                                DatabaseDescriptor.getMispreparedStatementsEnabled());
+
+            Assert.assertTrue("Default value of misprepared_statement_enabled must be true", originalValue);
         }
         finally
         {

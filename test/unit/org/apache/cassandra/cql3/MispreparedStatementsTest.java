@@ -83,7 +83,7 @@ public class MispreparedStatementsTest extends CQLTester
         state.login(nonSuperUser);
         state.setKeyspace(KEYSPACE);
         ClientWarn.instance.captureWarnings();
-        createTable("CREATE TABLE %s (id int, description text, name text, PRIMARY KEY (id, name))");
+        createTable("CREATE TABLE %s (id int, description text, age int, name text, PRIMARY KEY (id, name, age))");
     }
 
     @After
@@ -111,6 +111,26 @@ public class MispreparedStatementsTest extends CQLTester
     {
         assertGuardrailViolated(String.format("SELECT * FROM %s WHERE id = 1 AND name = 'v1'", currentTable()));
         assertNoWarnings();
+    }
+
+    @Test
+    public void testSelectWithWhereNonPrimaryKeyColumn()
+    {
+        assertGuardrailViolated(String.format("SELECT * FROM %s WHERE description = 'foo' ALLOW FILTERING", currentTable()));
+        assertNoWarnings();
+    }
+
+
+    @Test
+    public void testSelectWithCompositeRestriction()
+    {
+        assertGuardrailViolated(String.format("SELECT sum(id) from %s WHERE (name, age) = ('a', 1) ALLOW FILTERING", currentTable()));
+    }
+
+    @Test
+    public void testSelectWithFunction()
+    {
+        assertGuardrailViolated(String.format("SELECT sum(id) from %s where name = 'v1' ALLOW FILTERING", currentTable()));
     }
 
     @Test
@@ -142,6 +162,20 @@ public class MispreparedStatementsTest extends CQLTester
     }
 
     @Test
+    public void testDDLStatementsBypass()
+    {
+        assertGuardrailPassed("CREATE TABLE IF NOT EXISTS test_table (id INT PRIMARY KEY)");
+        assertNoWarnings();
+    }
+
+    @Test
+    public void testWhereLiteralWithLike()
+    {
+        assertGuardrailViolated(String.format("SELECT * FROM %s WHERE name LIKE 'prefix%%' ALLOW FILTERING", currentTable()));
+        assertNoWarnings();
+    }
+
+    @Test
     public void testInsertJsonGuardrail()
     {
         assertGuardrailViolated(String.format("INSERT INTO %s JSON '{\"id\": 1, \"name\": \"v1\"}'", currentTable()));
@@ -151,14 +185,14 @@ public class MispreparedStatementsTest extends CQLTester
     @Test
     public void testUpdateWithPartitionKey()
     {
-        assertGuardrailViolated(String.format("UPDATE %s SET description = 'new' WHERE id = 1 AND name = 'name'", KEYSPACE + '.' + currentTable()));
+        assertGuardrailViolated(String.format("UPDATE %s SET description = 'new' WHERE id = 1 AND name = 'name' AND age = 1", KEYSPACE + '.' + currentTable()));
         assertNoWarnings();
     }
 
     @Test
     public void testUpdateWithIfCondition()
     {
-        assertGuardrailViolated(String.format("UPDATE %s SET description = 'v2' WHERE id = 1 AND name = 'v1' IF description = 'v0'", currentTable()));
+        assertGuardrailViolated(String.format("UPDATE %s SET description = 'v2' WHERE id = 1 AND name = 'v1' AND age = 1 IF description = 'v0'", currentTable()));
         assertNoWarnings();
     }
 
@@ -170,23 +204,12 @@ public class MispreparedStatementsTest extends CQLTester
     }
 
     @Test
-    public void testBatchGuardrail()
-    {
-        String tableName = currentTable();
-        assertGuardrailViolated(String.format("BEGIN BATCH " +
-                                              "INSERT INTO %s.%s (id, description, name) VALUES (1, 'v1', 'v1'); " +
-                                              "UPDATE %s.%s SET description = 'v2' WHERE id = 2 AND name = 'v1'; " +
-                                              "APPLY BATCH", KEYSPACE, tableName, KEYSPACE, tableName));
-        assertNoWarnings();
-    }
-
-    @Test
-    public void testMultiTableBatchGuardrail()
+    public void testMultiTableBatchGuardrailAllLiteral()
     {
         String table1 = currentTable();
         String table2 = createTable("CREATE TABLE %s (id int PRIMARY KEY, val text)");
         String query = String.format("BEGIN BATCH " +
-                                     "UPDATE %s.%s SET description = 'v1' WHERE id = 1 AND name = 'n1'; " +
+                                     "UPDATE %s.%s SET description = 'v1' WHERE id = 1 AND name = 'n1' AND age = 1; " +
                                      "INSERT INTO %s.%s (id, val) VALUES (2, 'v2'); " +
                                      "APPLY BATCH",
                                      KEYSPACE, table1, KEYSPACE, table2);
@@ -289,8 +312,8 @@ public class MispreparedStatementsTest extends CQLTester
         DatabaseDescriptor.setMispreparedStatementsEnabled(true);
         String tableName = currentTable();
         assertGuardrailPassed(String.format("BEGIN BATCH " +
-                                            "INSERT INTO %s.%s (id, description, name) VALUES (1, 'v1', 'v1'); " +
-                                            "UPDATE %s.%s SET description = 'v2' WHERE id = 2 AND name = 'v1'; " +
+                                            "INSERT INTO %s.%s (id, description, name, age) VALUES (1, 'v1', 'v1', 1); " +
+                                            "UPDATE %s.%s SET description = 'v2' WHERE id = 2 AND name = 'v1' AND age = 1; " +
                                             "APPLY BATCH", KEYSPACE, tableName, KEYSPACE, tableName));
         assertWarnings();
     }
@@ -307,7 +330,7 @@ public class MispreparedStatementsTest extends CQLTester
             {
                 QueryProcessor.instance.prepare(query, state);
             }
-            catch (Exception e)
+            catch (GuardrailViolatedException e)
             {
                 // Expected: Guardrail throws exception
             }
@@ -345,7 +368,7 @@ public class MispreparedStatementsTest extends CQLTester
     private void assertWarnings()
     {
         List<String> warnings = ClientWarn.instance.getWarnings();
-        assertTrue("Expedted performance tip warning was not found",
+        assertTrue("Expected performance tip warning was not found",
                    warnings.stream().anyMatch(w -> w.contains(Guardrails.MISPREPARED_STATEMENT_WARN_MESSAGE)));
     }
 
