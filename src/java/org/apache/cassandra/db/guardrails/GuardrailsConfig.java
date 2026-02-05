@@ -543,8 +543,6 @@ public interface GuardrailsConfig
 
     void setIntersectFilteringQueryEnabled(boolean value);
 
-
-
     /**
      * @return A timestamp that if a user supplied timestamp is after will trigger a warning
      */

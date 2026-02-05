@@ -4846,7 +4846,6 @@ public class StorageService extends NotificationBroadcasterSupport implements IE
     public void setMispreparedStatementsEnabled(boolean enabled)
     {
         DatabaseDescriptor.setMispreparedStatementsEnabled(enabled);
-        logger.info("Updated misprepared_statements_enabled to {}", enabled);
     }
 
     /*
