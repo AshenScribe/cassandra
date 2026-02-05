@@ -243,7 +243,6 @@ public class MispreparedStatementsTest extends CQLTester
     public void testInternalBypass()
     {
         assertGuardrailPassed("SELECT * FROM " + KEYSPACE + '.' + currentTable() + " WHERE id = 1", ClientState.forInternalCalls());
-        assertNoWarnings();
     }
 
     @Test
@@ -278,7 +277,6 @@ public class MispreparedStatementsTest extends CQLTester
         ClientState superUserState = ClientState.forExternalCalls(new InetSocketAddress("127.0.0.1", 9042));
         superUserState.login(superUser);
         assertGuardrailPassed("SELECT * FROM " + KEYSPACE + '.' + currentTable() + " WHERE id = 1", superUserState);
-        assertNoWarnings();
     }
 
     @Test
@@ -300,7 +298,6 @@ public class MispreparedStatementsTest extends CQLTester
     public void testWarningIsIssuedWhenGuardrailIsAllowed()
     {
         DatabaseDescriptor.setMispreparedStatementsEnabled(true);
-        ClientWarn.instance.captureWarnings();
         assertGuardrailPassed(String.format("SELECT * FROM %s WHERE id = 1", currentTable()));
         assertWarnings();
 

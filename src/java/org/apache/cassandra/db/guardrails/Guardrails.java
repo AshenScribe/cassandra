@@ -621,15 +621,13 @@ public final class Guardrails implements GuardrailsMBean
     /**
      * Prevents heap exhaustion caused by the anti-pattern of preparing queries with
      * hardcoded literals instead of bind markers. This prevents filling the statement cache with non-reusable entries.
-     *
-     * @see <a href="https://issues.apache.org/jira/browse/CASSANDRA-21139">CASSANDRA-21139</a>
      */
 
     public static final EnableFlag mispreparedStatementsEnabled =
     new EnableFlag("misprepared_statements_enabled",
-                   "Mis-prepared statements cause server-side memory exhaustion and high GC pressure by flooding the statement cache with non-reusable query entries",
+                   "misprepared statements cause server-side memory exhaustion and high GC pressure by flooding the statement cache with non-reusable query entries",
                    state -> CONFIG_PROVIDER.getOrCreate(state).getMispreparedStatementsEnabled(),
-                   "Mis-prepared statements");
+                   "misprepared statements");
 
     public static final MaxThreshold maximumAllowableTimestamp =
     new MaxThreshold("maximum_timestamp",
@@ -1957,11 +1955,6 @@ public final class Guardrails implements GuardrailsMBean
     public static void onMisprepared(ClientState state)
     {
         mispreparedStatementsEnabled.ensureEnabled(state);
-
-        // only warn if user ins't super user or a external call
-        if (!state.isInternal && !state.isSuper())
-        {
-            mispreparedStatementsEnabled.warn(MISPREPARED_STATEMENT_WARN_MESSAGE);
-        }
+        mispreparedStatementsEnabled.warn(MISPREPARED_STATEMENT_WARN_MESSAGE);
     }
 }

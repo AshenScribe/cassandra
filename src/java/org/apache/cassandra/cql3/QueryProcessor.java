@@ -130,7 +130,6 @@ public class QueryProcessor implements QueryHandler
     // counters. Callers of processStatement are responsible for correctly notifying metrics
     public static final CQLMetrics metrics = new CQLMetrics();
 
-
     // Paging size to use when preloading prepared statements.
     public static final int PRELOAD_PREPARED_STATEMENTS_FETCH_SIZE = 5000;
 
@@ -495,6 +494,7 @@ public class QueryProcessor implements QueryHandler
         // Note: if 2 threads prepare the same query, we'll live so don't bother synchronizing
         CQLStatement statement = raw.prepare(clientState);
         statement.validate(clientState);
+
         // Set CQL string for AlterSchemaStatement as this is used to serialize the transformation
         // in the cluster metadata log
         if (statement instanceof AlterSchemaStatement)

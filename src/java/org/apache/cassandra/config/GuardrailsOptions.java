@@ -1338,7 +1338,7 @@ public class GuardrailsOptions implements GuardrailsConfig
 
     public void setMispreparedStatementsEnabled(boolean enabled)
     {
-        updatePropertyWithLogging("misprepare_statements_enabled",
+        updatePropertyWithLogging("misprepared_statements_enabled",
                                   enabled,
                                   () -> config.misprepared_statements_enabled,
                                   x -> config.misprepared_statements_enabled = x);
