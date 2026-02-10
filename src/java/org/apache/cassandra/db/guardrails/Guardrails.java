@@ -57,7 +57,7 @@ public final class Guardrails implements GuardrailsMBean
 
     public static final GuardrailsConfigProvider CONFIG_PROVIDER = GuardrailsConfigProvider.instance;
 
-    public static final String MISPREPARED_STATEMENT_WARN_MESSAGE = "Performance Tip: This query contains literal values in the WHERE clause. " + "Using '?' placeholders (bind markers) is much more efficient. " + "It allows the server to cache this query once and reuse it for different values, " + "reducing memory usage and improving speed.";
+    public static final String MISPREPARED_STATEMENT_WARN_MESSAGE = "This query contains only literal values in the WHERE clause. " + "Using one or more '?' placeholder values (bind markers) allow a prepared statement to be reused.";
 
     private static final GuardrailsOptions DEFAULT_CONFIG = DatabaseDescriptor.getGuardrailsConfig();
 
@@ -619,13 +619,13 @@ public final class Guardrails implements GuardrailsMBean
                             what, value, isWarning ? "warning" : "failure", threshold));
 
     /**
-     * Prevents heap exhaustion caused by the anti-pattern of preparing queries with
+     * Prevents cache overflow and eviction caused by the anti-pattern of preparing queries with
      * hardcoded literals instead of bind markers. This prevents filling the statement cache with non-reusable entries.
      */
 
     public static final EnableFlag mispreparedStatementsEnabled =
     new EnableFlag("misprepared_statements_enabled",
-                   "misprepared statements cause server-side memory exhaustion and high GC pressure by flooding the statement cache with non-reusable query entries",
+                   "misprepared statements create non-reusable query entries and cause cache overflow",
                    state -> CONFIG_PROVIDER.getOrCreate(state).getMispreparedStatementsEnabled(),
                    "misprepared statements");
 
