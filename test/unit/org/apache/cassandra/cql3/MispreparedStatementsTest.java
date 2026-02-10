@@ -219,9 +219,17 @@ public class MispreparedStatementsTest extends CQLTester
     }
 
     @Test
-    public void testProperlyPreparedWithBindMarkers()
+    public void testSucceedWithOnlyBindMarkers()
     {
         assertGuardrailPassed(String.format("SELECT * FROM %s WHERE id = ? AND name = ?", currentTable()));
+        assertNoWarnings();
+    }
+
+    @Test
+    public void testSucceedWithOneBindMarkerOneLiteral()
+    {
+
+        assertGuardrailPassed(String.format("SELECT * FROM %s WHERE id = ? AND name = 'v1'", currentTable()));
         assertNoWarnings();
     }
 
@@ -344,7 +352,7 @@ public class MispreparedStatementsTest extends CQLTester
         }
         catch (GuardrailViolatedException e)
         {
-            assertTrue(e.getMessage().contains("Mis-prepared statements is not allowed"));
+            assertTrue(e.getMessage().contains("misprepared statements is not allowed"));
         }
         catch (Exception e)
         {

@@ -408,7 +408,7 @@ public interface GuardrailsConfig
 
     /**
      * <p>
-     * A statement is considered "mis-prepared" if it contains hardcoded literal values
+     * A statement is considered "mis-prepared" if it contains only hardcoded liter values and without any bind markers
      * instead of bind markers. This is a performance anti-pattern because it prevents
      * query plan reuse and floods the server-side Prepared Statement Cache with
      * unique entries, leading to heap exhaustion and high GC pressure.
@@ -430,7 +430,6 @@ public interface GuardrailsConfig
      *
      * @return true if the usage of mis-prepared statements is enabled, false otherwise. Returns true by default.
      * {@code false} if mis-prepared statements should be strictly rejected, causing the query to fail.
-     * @see <a href="https://issues.apache.org/jira/browse/CASSANDRA-21139">CASSANDRA-21139</a>
      */
 
     boolean getMispreparedStatementsEnabled();
