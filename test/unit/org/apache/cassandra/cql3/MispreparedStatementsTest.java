@@ -47,7 +47,7 @@ public class MispreparedStatementsTest extends CQLTester
     {
         DatabaseDescriptor.setAuthenticator(new PasswordAuthenticator());
         DatabaseDescriptor.setAuthorizer(new CassandraAuthorizer());
-        DatabaseDescriptor.setMispreparedStatementsEnabled(false);
+        DatabaseDescriptor.setPreparedStatementsRequireParametersEnabled(true);
     }
 
     @Before
@@ -89,7 +89,7 @@ public class MispreparedStatementsTest extends CQLTester
     @After
     public void tearDown()
     {
-        DatabaseDescriptor.setMispreparedStatementsEnabled(false);
+        DatabaseDescriptor.setPreparedStatementsRequireParametersEnabled(true);
     }
 
     @Test
@@ -295,9 +295,9 @@ public class MispreparedStatementsTest extends CQLTester
     }
 
     @Test
-    public void testGuardrailDisabledAllowsLiterals()
+    public void testGuardrailDisabledAlowsLiterals()
     {
-        DatabaseDescriptor.setMispreparedStatementsEnabled(true);
+        DatabaseDescriptor.setPreparedStatementsRequireParametersEnabled(false);
         assertGuardrailPassed(String.format("SELECT * FROM %s WHERE id = 1", currentTable()));
         assertWarnings();
     }
@@ -305,7 +305,7 @@ public class MispreparedStatementsTest extends CQLTester
     @Test
     public void testWarningIsIssuedWhenGuardrailIsAllowed()
     {
-        DatabaseDescriptor.setMispreparedStatementsEnabled(true);
+        DatabaseDescriptor.setPreparedStatementsRequireParametersEnabled(false);
         assertGuardrailPassed(String.format("SELECT * FROM %s WHERE id = 1", currentTable()));
         assertWarnings();
 
@@ -314,7 +314,7 @@ public class MispreparedStatementsTest extends CQLTester
     @Test
     public void testGuardrailDisabledAllowsBatchLiterals()
     {
-        DatabaseDescriptor.setMispreparedStatementsEnabled(true);
+        DatabaseDescriptor.setPreparedStatementsRequireParametersEnabled(false);
         String tableName = currentTable();
         assertGuardrailPassed(String.format("BEGIN BATCH " +
                                             "INSERT INTO %s.%s (id, description, name, age) VALUES (1, 'v1', 'v1', 1); " +
@@ -352,7 +352,7 @@ public class MispreparedStatementsTest extends CQLTester
         }
         catch (GuardrailViolatedException e)
         {
-            assertTrue(e.getMessage().contains("misprepared statements is not allowed"));
+            assertTrue(e.getMessage().contains("Guardrail prepare_statements_require_parameters_enabled violated"));
         }
         catch (Exception e)
         {

@@ -350,7 +350,7 @@ public class SelectStatement implements CQLStatement.SingleKeyspaceCqlStatement,
         if (getBindVariables().isEmpty()
             && hasRestrictions)
         {
-            Guardrails.onMisprepared(state);
+            Guardrails.onMisprepared(state, table.keyspace, table.name);
         }
     }
 

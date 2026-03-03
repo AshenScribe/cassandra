@@ -422,7 +422,7 @@ public abstract class ModificationStatement implements CQLStatement.SingleKeyspa
                                  restrictions.hasNonPrimaryKeyRestrictions();
         if (getBindVariables().isEmpty() && hasRestriction)
         {
-            Guardrails.onMisprepared(state);
+            Guardrails.onMisprepared(state, metadata.keyspace, metadata.getTableName());
         }
     }
 

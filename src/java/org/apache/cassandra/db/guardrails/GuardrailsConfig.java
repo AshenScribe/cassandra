@@ -426,18 +426,19 @@ public interface GuardrailsConfig
      * }</pre>
      * For {@code BATCH} statements, if any individual statement within the batch is
      * identified as mis-prepared, the entire batch triggers this guardrail.
-
-     *
-     * @return true if the usage of mis-prepared statements is enabled, false otherwise. Returns true by default.
-     * {@code false} if mis-prepared statements should be strictly rejected, causing the query to fail.
+     * @return {@code true} if the requirement for parameters in prepared statements is strictly enforced (queries will fail).
+     *         {@code false} if the requirement is not strictly enforced (queries will only log a warning).
+     *         Defaults to {@code false}.
      */
 
-    boolean getMispreparedStatementsEnabled();
+    boolean getPreparedStatementsRequireParametersEnabled();
 
     /**
-     * sets whether misprepared statements is enabled
+     * Sets whether prepared statements are strictly required to have parameters.
+     *
+     * @param enabled {@code true} to reject statements without parameters, {@code false} to only warn.
      */
-    void setMispreparedStatementsEnabled(boolean enabled);
+    void setPreparedStatementsRequireParamtersEnabled(boolean enabled);
 
     /**
      * Sets whether new columns can be created with vector type
