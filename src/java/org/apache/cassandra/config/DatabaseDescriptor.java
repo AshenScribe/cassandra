@@ -5483,14 +5483,14 @@ public class DatabaseDescriptor
         }
     }
 
-    public static boolean getMispreparedStatementsEnabled()
+    public static boolean getPreparedStatementsRequireParametersEnabled()
     {
-        return conf.misprepared_statements_enabled;
+        return conf.prepared_statements_require_parameters_enabled;
     }
 
-    public static void setMispreparedStatementsEnabled(boolean enabled)
+    public static void setPreparedStatementsRequireParametersEnabled(boolean enabled)
     {
-        conf.misprepared_statements_enabled = enabled;
+        conf.prepared_statements_require_parameters_enabled = enabled;
     }
 
     public static AccordSpec getAccord()

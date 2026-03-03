@@ -621,11 +621,11 @@ public final class Guardrails implements GuardrailsMBean
      * hardcoded literals instead of bind markers. This prevents filling the statement cache with non-reusable entries.
      */
 
-    public static final EnableFlag mispreparedStatementsEnabled =
-    new EnableFlag("misprepared_statements_enabled",
+    public static final EnableFlag preparedStatementsRequireParametersEnabled =
+    new EnableFlag("prepare_statements_require_parameters_enabled",
                    "misprepared statements create non-reusable query entries and cause cache overflow",
-                   state -> CONFIG_PROVIDER.getOrCreate(state).getMispreparedStatementsEnabled(),
-                   "misprepared statements");
+                   state -> CONFIG_PROVIDER.getOrCreate(state).getPreparedStatementsRequireParametersEnabled(),
+                   "misprepared statements require parameters enabled");
 
     public static final MaxThreshold maximumAllowableTimestamp =
     new MaxThreshold("maximum_timestamp",
@@ -722,13 +722,13 @@ public final class Guardrails implements GuardrailsMBean
     @Override
     public boolean getMispreparedStatementsEnabled()
     {
-        return DEFAULT_CONFIG.getMispreparedStatementsEnabled();
+        return DEFAULT_CONFIG.getPreparedStatementsRequireParametersEnabled();
     }
 
     @Override
     public void setMispreparedStatementsEnabled(boolean enabled)
     {
-        DEFAULT_CONFIG.setMispreparedStatementsEnabled(enabled);
+        DEFAULT_CONFIG.setPreparedStatementsRequireParamtersEnabled(enabled);
     }
 
     @Override
@@ -1913,9 +1913,15 @@ public final class Guardrails implements GuardrailsMBean
                : (ClientState.getLastTimestampMicros() - duration.toMicroseconds());
     }
 
-    public static void onMisprepared(ClientState state)
+    public static void onMisprepared(ClientState state, String keyspace, String tableName)
     {
-        mispreparedStatementsEnabled.ensureEnabled(state);
-        mispreparedStatementsEnabled.warn(MISPREPARED_STATEMENT_WARN_MESSAGE);
+        if (preparedStatementsRequireParametersEnabled.isEnabled(state) && preparedStatementsRequireParametersEnabled.enabled(state))
+        {
+            preparedStatementsRequireParametersEnabled.fail(preparedStatementsRequireParametersEnabled.name + " is not allowed", state);
+        }
+        else
+        {
+            preparedStatementsRequireParametersEnabled.warn(MISPREPARED_STATEMENT_WARN_MESSAGE + "\n Keyspace: " + keyspace + "\n table: " + tableName);
+        }
     }
 }

@@ -1330,18 +1330,18 @@ public class GuardrailsOptions implements GuardrailsConfig
     }
 
     @Override
-    public boolean getMispreparedStatementsEnabled()
+    public boolean getPreparedStatementsRequireParametersEnabled()
     {
-        return config.misprepared_statements_enabled;
+        return config.prepared_statements_require_parameters_enabled;
     }
 
 
-    public void setMispreparedStatementsEnabled(boolean enabled)
+    public void setPreparedStatementsRequireParamtersEnabled(boolean enabled)
     {
-        updatePropertyWithLogging("misprepared_statements_enabled",
+        updatePropertyWithLogging("prepared_statements_require_parameters_enabled",
                                   enabled,
-                                  () -> config.misprepared_statements_enabled,
-                                  x -> config.misprepared_statements_enabled = x);
+                                  () -> config.prepared_statements_require_parameters_enabled,
+                                  x -> config.prepared_statements_require_parameters_enabled = x);
     }
 
     @Override

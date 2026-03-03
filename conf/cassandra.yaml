@@ -2532,9 +2532,14 @@ drop_compact_storage_enabled: false
 # maximum_replication_factor_warn_threshold: -1
 # maximum_replication_factor_fail_threshold: -1
 #
-# When true, allows the usage of misprepared statements, only warns in the logs.
-# When false, misprepared statements will result in an error to the client. Default is true.
-# misprepared_statements_enabled: true
+# Guardrail to warn or fail when a statement is prepared without bind markers (parameters).
+# This prevents the Prepared Statement Cache from being flooded with unique entries caused
+# by hardcoded literals.
+# When true, the server rejects the preparation of any statement that does not contains atleast one parameter.
+# When false, the server only emits a warning.
+# Defaults to false.
+# prepare_statements_require_parameters_enabled: false
+
 
 #role_name_policy:
 #  # Implementation class of a validator. When not in form of FQCN, the
