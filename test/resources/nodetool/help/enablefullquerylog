@@ -4,7 +4,7 @@ NAME
 
 SYNOPSIS
         nodetool [(-h <host> | --host <host>)] [(-p <port> | --port <port>)]
-                [(-pp | --print-port)] [(-pw <password> | --password <password>)]
+                [(-pw <password> | --password <password>)]
                 [(-pwf <passwordFilePath> | --password-file <passwordFilePath>)]
                 [(-u <username> | --username <username>)] enablefullquerylog
                 [--archive-command <archive_command>] [--blocking <blocking>]
@@ -45,9 +45,6 @@ OPTIONS
             Path to store the full query log at. Will have it's contents
             recursively deleted.
 
-        -pp, --print-port
-            Operate in 4.0 mode with hosts disambiguated by port number
-
         -pw <password>, --password <password>
             Remote jmx agent password
 
@@ -55,7 +52,8 @@ OPTIONS
             Path to the JMX password file
 
         --roll-cycle <roll_cycle>
-            How often to roll the log file (MINUTELY, HOURLY, DAILY).
+            How often to roll the log file (FAST_MINUTELY, FAST_HOURLY,
+            FAST_DAILY).
 
         -u <username>, --username <username>
             Remote jmx agent username

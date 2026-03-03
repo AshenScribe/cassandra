@@ -535,8 +535,8 @@ public abstract class ModificationStatement implements CQLStatement.SingleKeyspa
     throws InvalidRequestException
     {
         List<ByteBuffer> partitionKeys = restrictions.getPartitionKeys(options, state);
-        for (ByteBuffer key : partitionKeys)
-            QueryProcessor.validateKey(key);
+        for (int i = 0; i < partitionKeys.size(); i++)
+            QueryProcessor.validateKey(partitionKeys.get(i));
 
         return partitionKeys;
     }
@@ -581,8 +581,9 @@ public abstract class ModificationStatement implements CQLStatement.SingleKeyspa
         return isReadRequired;
     }
 
-    private Map<DecoratedKey, Partition> readRequiredLists(Collection<ByteBuffer> partitionKeys,
-                                                           ClusteringIndexFilter filter,
+    private <F> Map<DecoratedKey, Partition> readRequiredLists(Collection<ByteBuffer> partitionKeys,
+                                                           java.util.function.Function<F, ClusteringIndexFilter> filterBuilder,
+                                                           F filterArg,
                                                            DataLimits limits,
                                                            boolean local,
                                                            ConsistencyLevel cl,
@@ -609,7 +610,7 @@ public abstract class ModificationStatement implements CQLStatement.SingleKeyspa
                                                            RowFilter.none(),
                                                            limits,
                                                            metadata().partitioner.decorateKey(key),
-                                                           filter));
+                                                           filterBuilder.apply(filterArg)));
 
         SinglePartitionReadCommand.Group group = SinglePartitionReadCommand.Group.create(commands, DataLimits.NONE);
 
@@ -1038,7 +1039,8 @@ public abstract class ModificationStatement implements CQLStatement.SingleKeyspa
                 return;
 
             UpdateParameters params = makeUpdateParameters(keys,
-                                                           new ClusteringIndexSliceFilter(slices, false),
+                                                           (slicesToFilter) -> new ClusteringIndexSliceFilter(slicesToFilter, false),
+                                                           slices,
                                                            state,
                                                            options,
                                                            DataLimits.NONE,
@@ -1131,7 +1133,8 @@ public abstract class ModificationStatement implements CQLStatement.SingleKeyspa
     {
         if (clusterings.contains(Clustering.STATIC_CLUSTERING))
             return makeUpdateParameters(keys,
-                                        new ClusteringIndexSliceFilter(Slices.ALL, false),
+                                        (clusteringsToFilter) -> new ClusteringIndexSliceFilter(Slices.ALL, false),
+                                        clusterings,
                                         state,
                                         options,
                                         DataLimits.cqlLimits(1),
@@ -1142,7 +1145,8 @@ public abstract class ModificationStatement implements CQLStatement.SingleKeyspa
             );
 
         return makeUpdateParameters(keys,
-                                    new ClusteringIndexNamesFilter(clusterings, false),
+                                    (clusteringsToFilter) -> new ClusteringIndexNamesFilter(clusteringsToFilter, false),
+                                    clusterings,
                                     state,
                                     options,
                                     DataLimits.NONE,
@@ -1153,8 +1157,10 @@ public abstract class ModificationStatement implements CQLStatement.SingleKeyspa
         );
     }
 
-    private UpdateParameters makeUpdateParameters(Collection<ByteBuffer> keys,
-                                                  ClusteringIndexFilter filter,
+    private <F> UpdateParameters makeUpdateParameters(Collection<ByteBuffer> keys,
+                                                  // filter is needed rarely, so we allocate it on demand
+                                                  java.util.function.Function<F, ClusteringIndexFilter> filterBuilder,
+                                                  F filterArg,
                                                   ClientState state,
                                                   QueryOptions options,
                                                   DataLimits limits,
@@ -1166,7 +1172,8 @@ public abstract class ModificationStatement implements CQLStatement.SingleKeyspa
         // Some lists operation requires reading
         Map<DecoratedKey, Partition> lists =
             readRequiredLists(keys,
-                              filter,
+                              filterBuilder,
+                              filterArg,
                               limits,
                               local,
                               options.getConsistency(),

@@ -45,7 +45,6 @@ import org.apache.cassandra.index.internal.CassandraIndex;
 import org.apache.cassandra.io.compress.BufferType;
 import org.apache.cassandra.io.sstable.format.big.BigFormat;
 import org.apache.cassandra.repair.autorepair.AutoRepairConfig;
-import org.apache.cassandra.service.StartupChecks.StartupCheckType;
 import org.apache.cassandra.utils.StorageCompatibilityMode;
 
 import static org.apache.cassandra.config.CassandraRelevantProperties.AUTOCOMPACTION_ON_STARTUP_ENABLED;
@@ -429,6 +428,7 @@ public class Config
     public FlushCompression flush_compression = FlushCompression.fast;
     public int commitlog_max_compression_buffers_in_pool = 3;
     public DiskAccessMode commitlog_disk_access_mode = DiskAccessMode.legacy;
+    public DiskAccessMode compaction_read_disk_access_mode = DiskAccessMode.auto;
     @Replaces(oldName = "periodic_commitlog_sync_lag_block_in_ms", converter = Converters.MILLIS_DURATION_INT, deprecated = true)
     public DurationSpec.IntMillisecondsBound periodic_commitlog_sync_lag_block;
     public TransparentDataEncryptionOptions transparent_data_encryption_options = new TransparentDataEncryptionOptions();
@@ -523,10 +523,6 @@ public class Config
     public volatile DurationSpec.IntSecondsBound compression_dictionary_refresh_initial_delay = new DurationSpec.IntSecondsBound("10s"); // 10 seconds default
     public volatile int compression_dictionary_cache_size = 10; // max dictionaries per table
     public volatile DurationSpec.IntSecondsBound compression_dictionary_cache_expire = new DurationSpec.IntSecondsBound("24h");
-
-    // Dictionary training settings
-    public volatile boolean compression_dictionary_training_auto_train_enabled = false;
-    public volatile float compression_dictionary_training_sampling_rate = 0.01f; // samples 1%
 
     public DataStorageSpec.LongMebibytesBound paxos_cache_size = null;
 
@@ -943,6 +939,13 @@ public class Config
     public volatile boolean drop_keyspace_enabled = true;
     public volatile boolean secondary_indexes_enabled = true;
 
+    /**
+     * If we encounter a Gossip bug where {@link org.apache.cassandra.gms.Gossiper#getMinVersion} is
+     * unable to accurately report a minimum version for the cluster, optionally force the optimized
+     * index status format added in CASSANDRA-20058.
+     */
+    public volatile boolean force_optimized_index_status_format = false;
+
     public volatile String default_secondary_index = CassandraIndex.NAME;
     public volatile boolean default_secondary_index_enabled = true;
 
@@ -996,6 +999,8 @@ public class Config
     public volatile boolean non_partition_restricted_index_query_enabled = true;
     public volatile boolean intersect_filtering_query_warned = true;
     public volatile boolean intersect_filtering_query_enabled = true;
+    public volatile boolean unset_training_min_frequency_warned = true;
+    public volatile boolean unset_training_min_frequency_enabled = true;
 
     public volatile int sai_sstable_indexes_per_query_warn_threshold = 32;
     public volatile int sai_sstable_indexes_per_query_fail_threshold = -1;
@@ -1013,7 +1018,7 @@ public class Config
     public volatile DurationSpec.IntSecondsBound streaming_slow_events_log_timeout = new DurationSpec.IntSecondsBound("10s");
 
     /** The configuration of startup checks. */
-    public volatile Map<StartupCheckType, Map<String, Object>> startup_checks = new HashMap<>();
+    public volatile Map<String, Map<String, Object>> startup_checks = new HashMap<>();
 
     public volatile DurationSpec.LongNanosecondsBound repair_state_expires = new DurationSpec.LongNanosecondsBound("3d");
     public volatile int repair_state_size = 100_000;

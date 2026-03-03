@@ -15,26 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.cassandra.io.util;
 
-package org.apache.cassandra.tools.nodetool;
-
-import picocli.CommandLine.ParentCommand;
+import java.nio.ByteBuffer;
 
 /**
- * Abstract class for commands that display endpoints that can be disambiguated by port number. (e.g. gossipinfo, describecluster etc.).
+ * Holder for reusable thread-local ByteBuffers.
  */
-abstract class WithPortDisplayAbstractCommand extends AbstractCommand
+public interface ByteBufferHolder
 {
-    @ParentCommand
-    private NodetoolCommand parent;
-
-    /** See {@link NodetoolCommand#printPort} option. */
-    protected boolean printPort;
-
-    @Override
-    protected boolean shouldConnect()
-    {
-        printPort = parent.printPort;
-        return true;
-    }
+    ByteBuffer getBuffer(int size);
 }
