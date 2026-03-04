@@ -1100,12 +1100,12 @@ public interface StorageServiceMBean extends NotificationEmitter
     /**
      * Returns whether use of misprepared statements is enabled
      */
-    public boolean getMispreparedStatementsEnabled();
+    public boolean getPreparedStatementsRequireParametersEnabled();
 
     /**
      * Sets whether use of misprepared statements is enabled
      */
-    public void setMispreparedStatementsEnabled(boolean enabled);
+    public void setPreparedStatementsRequireParametersEnabled(boolean enabled);
 
     /** Returns the threshold for skipping the column index when caching partition info **/
     public int getColumnIndexCacheSizeInKiB();
