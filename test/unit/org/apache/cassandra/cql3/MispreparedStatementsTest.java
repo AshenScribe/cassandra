@@ -315,7 +315,7 @@ public class MispreparedStatementsTest extends CQLTester
 
 
     @Test
-    public void testGuardrailDoesNotAppliesToNonPreparableStatements()
+    public void testGuardrailDoesNotApplyToNonPreparableStatements()
     {
         assertGuardrailPassed(String.format("ALTER TABLE %s add mime text", currentTable()));
         assertNoWarnings();

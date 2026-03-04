@@ -57,9 +57,9 @@ public interface GuardrailsMBean
     /**
      * @return the use of misprepared statement is enabled
      */
-    boolean getMispreparedStatementsEnabled();
+    boolean getPreparedStatementsRequireParametersEnabled();
 
-    void setMispreparedStatementsEnabled(boolean enabled);
+    void setPreparedStatementsRequireParametersEnabled(boolean enabled);
 
     /**
      * @return The threshold to warn when creating more tables than threshold.

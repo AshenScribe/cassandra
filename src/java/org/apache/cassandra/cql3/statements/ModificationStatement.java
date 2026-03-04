@@ -409,9 +409,7 @@ public abstract class ModificationStatement implements CQLStatement.SingleKeyspa
         checkFalse(isVirtual() && hasConditions(), "Conditional updates are not supported by virtual tables");
 
         if (attrs.isTimestampSet())
-        {
             Guardrails.userTimestampsEnabled.ensureEnabled(state);
-        }
     }
 
     @Override

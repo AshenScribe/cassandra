@@ -786,7 +786,7 @@ public class DatabaseDescriptorTest
         boolean originalValue = DatabaseDescriptor.getPreparedStatementsRequireParametersEnabled();
         try
         {
-            Assert.assertFalse("Default value of prepared_statement_enabled must be false", originalValue);
+            Assert.assertFalse("Default value of prepared_statements_require_parameters_enabled must be false", originalValue);
             DatabaseDescriptor.setPreparedStatementsRequireParametersEnabled(true);
             Assert.assertTrue("Value should be true after setting to true",
                               DatabaseDescriptor.getPreparedStatementsRequireParametersEnabled());

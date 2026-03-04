@@ -735,13 +735,13 @@ public final class Guardrails implements GuardrailsMBean
     }
 
     @Override
-    public boolean getMispreparedStatementsEnabled()
+    public boolean getPreparedStatementsRequireParametersEnabled()
     {
         return DEFAULT_CONFIG.getPreparedStatementsRequireParametersEnabled();
     }
 
     @Override
-    public void setMispreparedStatementsEnabled(boolean enabled)
+    public void setPreparedStatementsRequireParametersEnabled(boolean enabled)
     {
         DEFAULT_CONFIG.setPreparedStatementsRequireParametersEnabled(enabled);
     }

@@ -408,7 +408,7 @@ public interface GuardrailsConfig
 
     /**
      * <p>
-     * A statement is considered "mis-prepared" if it contains only hardcoded liter values and without any bind markers
+     * A statement is considered "mis-prepared" if it contains only hardcoded literal values and without any bind markers
      * instead of bind markers. This is a performance anti-pattern because it prevents
      * query plan reuse and floods the server-side Prepared Statement Cache with
      * unique entries, leading to heap exhaustion and high GC pressure.
