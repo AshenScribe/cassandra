@@ -4851,13 +4851,13 @@ public class StorageService extends NotificationBroadcasterSupport implements IE
     }
 
     @Override
-    public boolean getMispreparedStatementsEnabled()
+    public boolean getPreparedStatementsRequireParametersEnabled()
     {
         return DatabaseDescriptor.getPreparedStatementsRequireParametersEnabled();
     }
 
     @Override
-    public void setMispreparedStatementsEnabled(boolean enabled)
+    public void setPreparedStatementsRequireParametersEnabled(boolean enabled)
     {
         DatabaseDescriptor.setPreparedStatementsRequireParametersEnabled(enabled);
     }

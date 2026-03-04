@@ -624,7 +624,7 @@ public final class Guardrails implements GuardrailsMBean
      */
 
     public static final EnableFlag preparedStatementsRequireParametersEnabled =
-    new EnableFlag("prepare_statements_require_parameters_enabled",
+    new EnableFlag("prepared_statements_require_parameters_enabled",
                    "misprepared statements create non-reusable query entries and cause cache overflow",
                    state -> CONFIG_PROVIDER.getOrCreate(state).getPreparedStatementsRequireParametersEnabled(),
                    "misprepared statements require parameters enabled");
