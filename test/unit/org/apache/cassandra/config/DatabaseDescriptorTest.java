@@ -782,11 +782,11 @@ public class DatabaseDescriptorTest
     }
 
     @Test
-    public void testMisreparedStatementsRequireParametersEnabled() {
+    public void testPreparedStatementsRequireParametersEnabled() {
         boolean originalValue = DatabaseDescriptor.getPreparedStatementsRequireParametersEnabled();
         try
         {
-            Assert.assertFalse("Default value of misprepared_statement_enabled must be false", originalValue);
+            Assert.assertFalse("Default value of prepared_statement_enabled must be false", originalValue);
             DatabaseDescriptor.setPreparedStatementsRequireParametersEnabled(true);
             Assert.assertTrue("Value should be true after setting to true",
                               DatabaseDescriptor.getPreparedStatementsRequireParametersEnabled());

@@ -140,7 +140,7 @@ import static org.apache.cassandra.service.paxos.Ballot.Flag.NONE;
 /*
  * Abstract parent class of individual modifications, i.e. INSERT, UPDATE and DELETE.
  */
-public abstract class ModificationStatement implements CQLStatement.SingleKeyspaceCqlStatement
+public abstract class ModificationStatement implements CQLStatement.SingleKeyspaceCqlStatement, PreparableStatement
 {
     protected static final Logger logger = LoggerFactory.getLogger(ModificationStatement.class);
 
@@ -412,14 +412,19 @@ public abstract class ModificationStatement implements CQLStatement.SingleKeyspa
         {
             Guardrails.userTimestampsEnabled.ensureEnabled(state);
         }
+    }
+
+    @Override
+    public void validatePrepare(ClientState state)
+    {
         // Misprepare guardrail shouldn't block system keyspaces
         if (SchemaConstants.isSystemKeyspace(metadata.keyspace))
             return;
 
         boolean hasRestriction = restrictions != null &&
                                  (restrictions.hasPartitionKeyRestrictions() ||
-                                 restrictions.hasClusteringColumnsRestrictions() ||
-                                 restrictions.hasNonPrimaryKeyRestrictions());
+                                  restrictions.hasClusteringColumnsRestrictions() ||
+                                  restrictions.hasNonPrimaryKeyRestrictions());
         if (getBindVariables().isEmpty() && hasRestriction)
         {
             Guardrails.onMisprepared(state, metadata.keyspace, metadata.getTableName());

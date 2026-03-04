@@ -29,9 +29,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import org.apache.cassandra.auth.AuthenticatedUser;
-import org.apache.cassandra.auth.CassandraAuthorizer;
-import org.apache.cassandra.auth.PasswordAuthenticator;
 import org.apache.cassandra.config.DatabaseDescriptor;
+import org.apache.cassandra.db.ConsistencyLevel;
 import org.apache.cassandra.db.guardrails.GuardrailViolatedException;
 import org.apache.cassandra.db.guardrails.Guardrails;
 import org.apache.cassandra.service.ClientState;
@@ -47,8 +46,7 @@ public class MispreparedStatementsTest extends CQLTester
     @BeforeClass
     public static void setupGlobalConfig()
     {
-        DatabaseDescriptor.setAuthenticator(new PasswordAuthenticator());
-        DatabaseDescriptor.setAuthorizer(new CassandraAuthorizer());
+        CQLTester.requireAuthentication();
         originalValue = DatabaseDescriptor.getPreparedStatementsRequireParametersEnabled();
         DatabaseDescriptor.setPreparedStatementsRequireParametersEnabled(true);
     }
@@ -297,6 +295,33 @@ public class MispreparedStatementsTest extends CQLTester
     }
 
     @Test
+    public void testGuardrailBypassesNonPrepareStatements()
+    {
+        String tableName = createTable("CREATE TABLE %s (id int PRIMARY KEY, name text)");
+
+        try
+        {
+            String query = String.format("SELECT * FROM %s.%s WHERE id = 1 and name = 'v1' ALLOW FILTERING",
+                                         KEYSPACE, tableName);
+
+            QueryProcessor.process(query, ConsistencyLevel.ONE);
+            assertNoWarnings();
+        }
+        catch (GuardrailViolatedException e)
+        {
+            Assert.fail("Non Prepare statement also checked for prepared constraints");
+        }
+    }
+
+
+    @Test
+    public void testGuardrailDoesNotAppliesToNonPreparableStatements()
+    {
+        assertGuardrailPassed(String.format("ALTER TABLE %s add mime text", currentTable()));
+        assertNoWarnings();
+    }
+
+    @Test
     public void testSystemKeyspaceBypassForRegularUser()
     {
         assertGuardrailPassed("SELECT * FROM system.local WHERE key = 'local'");
@@ -361,7 +386,7 @@ public class MispreparedStatementsTest extends CQLTester
         }
         catch (GuardrailViolatedException e)
         {
-            assertTrue(e.getMessage().contains("Guardrail prepare_statements_require_parameters_enabled violated"));
+            assertTrue(e.getMessage().contains("Guardrail " + Guardrails.preparedStatementsRequireParametersEnabled.name + " violated"));
         }
         catch (Exception e)
         {
