@@ -57,7 +57,7 @@ public final class Guardrails implements GuardrailsMBean
 
     public static final GuardrailsConfigProvider CONFIG_PROVIDER = GuardrailsConfigProvider.instance;
 
-    public static final String MISPREPARED_STATEMENT_WARN_MESSAGE = "This query contains only literal values in the WHERE clause. " + "Using one or more '?' placeholder values (bind markers) allow a prepared statement to be reused.";
+    public static final String MISPREPARED_STATEMENT_WARN_MESSAGE = "This query contains only literal values in the WHERE clause. " + "Using one or more '?' placeholder values (bind markers) allows a prepared statement to be reused.";
 
     private static final GuardrailsOptions DEFAULT_CONFIG = DatabaseDescriptor.getGuardrailsConfig();
 
@@ -743,7 +743,7 @@ public final class Guardrails implements GuardrailsMBean
     @Override
     public void setMispreparedStatementsEnabled(boolean enabled)
     {
-        DEFAULT_CONFIG.setPreparedStatementsRequireParamtersEnabled(enabled);
+        DEFAULT_CONFIG.setPreparedStatementsRequireParametersEnabled(enabled);
     }
 
     @Override
