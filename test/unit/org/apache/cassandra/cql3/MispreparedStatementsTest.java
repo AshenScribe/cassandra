@@ -22,6 +22,7 @@ import java.net.InetSocketAddress;
 import java.util.List;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -41,13 +42,21 @@ import static org.junit.Assert.assertTrue;
 public class MispreparedStatementsTest extends CQLTester
 {
     private static final ClientState state = ClientState.forExternalCalls(new InetSocketAddress("127.0.0.1", 9042));
+    private static boolean originalValue;
 
     @BeforeClass
     public static void setupGlobalConfig()
     {
         DatabaseDescriptor.setAuthenticator(new PasswordAuthenticator());
         DatabaseDescriptor.setAuthorizer(new CassandraAuthorizer());
+        originalValue = DatabaseDescriptor.getPreparedStatementsRequireParametersEnabled();
         DatabaseDescriptor.setPreparedStatementsRequireParametersEnabled(true);
+    }
+
+    @AfterClass
+    public static void cleanUp()
+    {
+        DatabaseDescriptor.setPreparedStatementsRequireParametersEnabled(originalValue);
     }
 
     @Before
@@ -295,7 +304,7 @@ public class MispreparedStatementsTest extends CQLTester
     }
 
     @Test
-    public void testGuardrailDisabledAlowsLiterals()
+    public void testGuardrailDisabledAllowsLiterals()
     {
         DatabaseDescriptor.setPreparedStatementsRequireParametersEnabled(false);
         assertGuardrailPassed(String.format("SELECT * FROM %s WHERE id = 1", currentTable()));

@@ -438,7 +438,7 @@ public interface GuardrailsConfig
      *
      * @param enabled {@code true} to reject statements without parameters, {@code false} to only warn.
      */
-    void setPreparedStatementsRequireParamtersEnabled(boolean enabled);
+    void setPreparedStatementsRequireParametersEnabled(boolean enabled);
 
     /**
      * Sets whether new columns can be created with vector type
