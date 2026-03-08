@@ -18,15 +18,23 @@
 
 package org.apache.cassandra.transport;
 
+import java.io.IOException;
+
+import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.cql3.CQLTester;
+import org.apache.cassandra.transport.Message.Response;
+import org.apache.cassandra.transport.messages.OptionsMessage;
+import org.apache.cassandra.transport.messages.StartupMessage;
+import org.apache.cassandra.transport.messages.SupportedMessage;
+import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-class GracefulDisconnectTest extends CQLTester
+public class GracefulDisconnectTest extends CQLTester
 {
     @BeforeClass
-    public void setup()
+    public static void setup()
     {
         requireNetwork();
     }
@@ -38,9 +46,45 @@ class GracefulDisconnectTest extends CQLTester
     }
 
     @Test
-    public void testReceivesGracefulDisconnectEvent()
+    public void testGracefulDisconnectReportedWhenEnabled() throws IOException
     {
+        DatabaseDescriptor.setGracefulDisconnectEnabled(true);
+        SimpleClient.Builder builder = SimpleClient.builder(nativeAddr.getHostAddress(), nativePort).protocolVersion(ProtocolVersion.V5);
 
+        try (SimpleClient client = builder.build()) 
+        {
+            client.establishConnection();
+            
+            OptionsMessage message = new OptionsMessage();
+            Response response = client.execute(message);
+
+            if (!(response instanceof SupportedMessage)) Assertions.fail("Expected an SUPPORTED in response to a OPTIONS, got: " + response);
+            
+            SupportedMessage supportedMessage = (SupportedMessage) response;
+            if (!supportedMessage.supported.containsKey(StartupMessage.GRACEFUL_DISCONNECT)) Assertions.fail("GRACEFUL_DISCONNECT event not received");
+            if (!Boolean.parseBoolean(supportedMessage.supported.get(StartupMessage.GRACEFUL_DISCONNECT).get(0))) Assertions.fail("GRACEFUL_DISCONNECT value is false, expected true");
+        }
     }
     
+
+    @Test
+    public void testGracefulDisconnectReportedAsFalseWhenDisabled() throws IOException
+    {
+        DatabaseDescriptor.setGracefulDisconnectEnabled(false);
+        SimpleClient.Builder builder = SimpleClient.builder(nativeAddr.getHostAddress(), nativePort).protocolVersion(ProtocolVersion.V5);
+
+        try (SimpleClient client = builder.build()) 
+        {
+            client.establishConnection();
+            
+            OptionsMessage message = new OptionsMessage();
+            Response response = client.execute(message);
+
+            if (!(response instanceof SupportedMessage)) Assertions.fail("Expected an SUPPORTED in response to a OPTIONS, got: " + response);
+            
+            SupportedMessage supportedMessage = (SupportedMessage) response;
+            if (!supportedMessage.supported.containsKey(StartupMessage.GRACEFUL_DISCONNECT)) Assertions.fail("GRACEFUL_DISCONNECT event not received");
+            if (Boolean.parseBoolean(supportedMessage.supported.get(StartupMessage.GRACEFUL_DISCONNECT).get(0))) Assertions.fail("GRACEFUL_DISCONNECT value is true, expected false");
+        }
+    }
 }
