@@ -411,7 +411,7 @@ public interface GuardrailsConfig
      * A statement is considered "mis-prepared" if it contains only hardcoded literal values and without any bind markers
      * instead of bind markers. This is a performance anti-pattern because it prevents
      * query plan reuse and floods the server-side Prepared Statement Cache with
-     * unique entries, leading to heap exhaustion and high GC pressure.
+     * unique entries.
      * <p>
      * <b>LWT and Batch Considerations:</b>
      * This check applies to both the {@code WHERE} clause and the {@code IF} conditions
