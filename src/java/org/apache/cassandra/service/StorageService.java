@@ -3886,7 +3886,7 @@ public class StorageService extends NotificationBroadcasterSupport implements IE
         {
             ChannelGroup channelGroup = CassandraDaemon.instance.nativeTransportService()
                                                                 .getServer()
-                                                                .getChannelsSubsribedToGracefulDisconnect();
+                                                                .getChannelsSubscribedToGracefulDisconnect();
 
             if (channelGroup != null && !channelGroup.isEmpty())
             {
