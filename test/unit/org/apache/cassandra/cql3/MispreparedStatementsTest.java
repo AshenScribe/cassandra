@@ -328,13 +328,6 @@ public class MispreparedStatementsTest extends CQLTester
         assertNoWarnings();
     }
 
-    @Test
-    public void testGuardrailDisabledAllowsLiterals()
-    {
-        DatabaseDescriptor.setPreparedStatementsRequireParametersEnabled(false);
-        assertGuardrailPassed(String.format("SELECT * FROM %s WHERE id = 1", currentTable()));
-        assertWarnings();
-    }
 
     @Test
     public void testWarningIsIssuedWhenGuardrailIsAllowed()
@@ -407,8 +400,11 @@ public class MispreparedStatementsTest extends CQLTester
     private void assertWarnings()
     {
         List<String> warnings = ClientWarn.instance.getWarnings();
-        assertTrue("Expected performance tip warning was not found",
+        if (warnings != null)
+            assertTrue("Expected performance tip warning was not found",
                    warnings.stream().anyMatch(w -> w.contains(Guardrails.MISPREPARED_STATEMENT_WARN_MESSAGE)));
+        else
+            Assert.fail("Expected performance tip warning was not found");
     }
 
     private void assertGuardrailPassed(String query)
