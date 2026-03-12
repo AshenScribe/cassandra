@@ -1336,6 +1336,7 @@ public class GuardrailsOptions implements GuardrailsConfig
     }
 
 
+    @Override
     public void setPreparedStatementsRequireParametersEnabled(boolean enabled)
     {
         updatePropertyWithLogging("prepared_statements_require_parameters_enabled",
