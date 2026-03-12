@@ -425,6 +425,8 @@ public abstract class ModificationStatement implements CQLStatement.SingleKeyspa
                                  (restrictions.hasPartitionKeyRestrictions() ||
                                   restrictions.hasClusteringColumnsRestrictions() ||
                                   restrictions.hasNonPrimaryKeyRestrictions());
+        if (type.isInsert())
+            return;
         if (getBindVariables().isEmpty() && hasRestriction)
         {
             Guardrails.onMisprepared(state, metadata.keyspace, metadata.getTableName());

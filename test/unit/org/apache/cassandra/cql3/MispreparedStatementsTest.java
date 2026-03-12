@@ -185,7 +185,7 @@ public class MispreparedStatementsTest extends CQLTester
     @Test
     public void testInsertJsonGuardrail()
     {
-        assertGuardrailViolated(String.format("INSERT INTO %s JSON '{\"id\": 1, \"name\": \"v1\"}'", currentTable()));
+        assertGuardrailPassed(String.format("INSERT INTO %s JSON '{\"id\": 1, \"name\": \"v1\"}'", currentTable()));
         assertNoWarnings();
     }
 
@@ -392,7 +392,7 @@ public class MispreparedStatementsTest extends CQLTester
         List<String> warnings = ClientWarn.instance.getWarnings();
         if (warnings != null)
         {
-            assertTrue("Expected performance tip warning was found",
+            assertTrue("Unexpected performance tip warning was found",
                        warnings.stream().noneMatch(w -> w.contains(Guardrails.MISPREPARED_STATEMENT_WARN_MESSAGE)));
         }
     }

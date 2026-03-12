@@ -783,7 +783,8 @@ public class DatabaseDescriptorTest
     }
 
     @Test
-    public void testPreparedStatementsRequireParametersEnabled() {
+    public void testPreparedStatementsRequireParametersEnabled()
+    {
         boolean originalValue = DatabaseDescriptor.getPreparedStatementsRequireParametersEnabled();
         try
         {
