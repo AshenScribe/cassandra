@@ -624,7 +624,7 @@ public interface StorageServiceMBean extends NotificationEmitter
     public String getDrainProgress();
 
     /** makes node unavailable for writes, flushes memtables and replays commitlog. */
-    public void drain() throws IOException, InterruptedException, ExecutionException;
+    public void drain() throws IOException, InterruptedException, ExecutionException, TimeoutException;
 
     /**
      * Truncates (deletes) the given table from the provided keyspace.

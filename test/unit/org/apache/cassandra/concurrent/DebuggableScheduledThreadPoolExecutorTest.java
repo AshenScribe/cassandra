@@ -56,7 +56,7 @@ public class DebuggableScheduledThreadPoolExecutorTest
     }
 
     @Test
-    public void testShutdown() throws ExecutionException, InterruptedException, IOException
+    public void testShutdown() throws ExecutionException, InterruptedException, IOException, TimeoutException
     {
         ScheduledExecutorPlus testPool = executorFactory().scheduled("testpool");
 

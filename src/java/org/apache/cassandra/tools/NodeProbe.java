@@ -765,7 +765,7 @@ public class NodeProbe implements AutoCloseable
         }
     }
 
-    public void drain() throws IOException, InterruptedException, ExecutionException
+    public void drain() throws IOException, InterruptedException, ExecutionException, TimeoutException
     {
         ssProxy.drain();
     }

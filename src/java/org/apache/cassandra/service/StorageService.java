@@ -49,6 +49,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -303,6 +304,8 @@ import static org.apache.cassandra.utils.PojoToString.pojoMapToString;
 public class StorageService extends NotificationBroadcasterSupport implements IEndpointStateChangeSubscriber, StorageServiceMBean
 {
     private static final Logger logger = LoggerFactory.getLogger(StorageService.class);
+
+    private static ReentrantLock drainLock = new ReentrantLock();
 
     public static final int INDEFINITE = -1;
     public static final int RING_DELAY_MILLIS = getRingDelay(); // delay after which we assume ring has stablized
@@ -3869,24 +3872,42 @@ public class StorageService extends NotificationBroadcasterSupport implements IE
     /**
      * Shuts node off to writes, empties memtables and the commit log.
      */
-    public synchronized void drain() throws IOException, InterruptedException, ExecutionException
+    public void drain() throws IOException, InterruptedException, ExecutionException, TimeoutException
     {
-        CountDownLatch drainComplete = new CountDownLatch(1);
-        gracefulDisconnect(() -> {
-            try
-            {
-                drain(false);
-            }
-            catch (IOException | InterruptedException | ExecutionException e)
-            {
-                throw new RuntimeException(e);
-            }
-            finally
-            {
-                drainComplete.countDown();
-            }
-        });
-        drainComplete.await(DatabaseDescriptor.getGracefulDisconnectMaxDrain(), MILLISECONDS);
+        if (!drainLock.tryLock())
+        {
+            throw new IllegalStateException("Drain already in progress");
+        }
+        try
+        {
+            CountDownLatch drainComplete = new CountDownLatch(1);
+            AtomicReference<Exception> failure = new AtomicReference<>();
+            gracefulDisconnect(() -> {
+                try
+                {
+                    drain(false);
+                }
+                catch (IOException | InterruptedException | ExecutionException e)
+                {
+                    failure.set(e);
+                }
+                finally
+                {
+                    drainComplete.countDown();
+                }
+            });
+            if (!drainComplete.await(DatabaseDescriptor.getGracefulDisconnectGracePeriod(), MILLISECONDS))
+                throw new TimeoutException("Timed out waiting for drain to complete after graceful disconnect");
+            Exception e = failure.get();
+            if (e instanceof IOException) throw (IOException) e;
+            if (e instanceof InterruptedException) throw (InterruptedException) e;
+            if (e instanceof ExecutionException) throw (ExecutionException) e;
+            if (e != null) throw new RuntimeException(e);
+        }
+        finally
+        {
+            drainLock.unlock();
+        }
     }
 
     private void gracefulDisconnect(Runnable defaultAction)
@@ -3918,40 +3939,44 @@ public class StorageService extends NotificationBroadcasterSupport implements IE
         AtomicInteger connectedChannels = new AtomicInteger(channelGroup.size());
         Runnable runOnceAction = () -> {
             if (actionStarted.compareAndSet(false, true))
-            {
-                int remaining = connectedChannels.get();
-                ClientMetrics.instance.markForcedDisconnect(remaining);
-                ClientMetrics.instance.decrementConnectionsDraining(remaining);
                 defaultAction.run();
+        };
+        Runnable onTimeout = () -> {
+            if (actionStarted.get())
+                return;
+            int remaining = connectedChannels.get();
+            if (remaining > 0)
+            {
+                ClientMetrics.instance.markForcedDisconnect(remaining);
+                channelGroup.close();
+            }
+            else
+            {
+                runOnceAction.run();
             }
         };
         ScheduledFuture<?> timeoutTask = ScheduledExecutors.nonPeriodicTasks
-                                         .schedule(runOnceAction, DatabaseDescriptor.getGracefulDisconnectMaxDrain(), MILLISECONDS);
-
-        // Use a counter rather than channelGroup.isEmpty() because DefaultChannelGroup removes
-        // channels on close; under concurrent closes, a listener could see isEmpty()==true
-        // before all listeners have fired, triggering the action prematurely.
+                                         .schedule(onTimeout, DatabaseDescriptor.getGracefulDisconnectGracePeriod(), MILLISECONDS);
         EventMessage gracefulDisconnectEventMessage = new EventMessage(new Event.GracefulDisconnect());
         channelGroup.forEach(channel -> {
             Consumer<EventMessage> dispatcher = channel.attr(EVENT_DISPATCHER).get();
             if (dispatcher != null)
                 dispatcher.accept(gracefulDisconnectEventMessage);
-            channel.closeFuture().addListener((future -> {
+
+            channel.closeFuture().addListener(future -> {
                 ClientMetrics.instance.decrementConnectionsDraining();
                 if (connectedChannels.decrementAndGet() == 0)
                 {
-                    runOnceAction.run();
                     timeoutTask.cancel(false);
+                    runOnceAction.run();
                 }
-            }));
+            });
             ClientMetrics.instance.incrementConnectionsDraining();
         });
-        // All channels were already closed before we could register listeners
-        // close futures fired inline and decremented the counter to 0 during forEach.
         if (connectedChannels.get() == 0)
         {
-            runOnceAction.run();
             timeoutTask.cancel(false);
+            runOnceAction.run();
         }
     }
 

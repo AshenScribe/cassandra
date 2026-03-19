@@ -20,6 +20,7 @@ package org.apache.cassandra.tools.nodetool;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 import org.apache.cassandra.tools.NodeProbe;
 
@@ -34,7 +35,7 @@ public class Drain extends AbstractCommand
         try
         {
             probe.drain();
-        } catch (IOException | InterruptedException | ExecutionException e)
+        } catch (IOException | InterruptedException | TimeoutException | ExecutionException e)
         {
             throw new RuntimeException("Error occurred during flushing", e);
         }

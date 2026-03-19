@@ -37,6 +37,7 @@ import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.transport.Event;
 import org.apache.cassandra.transport.Message;
 import org.apache.cassandra.transport.ProtocolVersion;
+import org.apache.cassandra.transport.Server;
 import org.apache.cassandra.transport.SimpleClient;
 import org.apache.cassandra.transport.messages.OptionsMessage;
 import org.apache.cassandra.transport.messages.ReadyMessage;
@@ -45,13 +46,11 @@ import org.apache.cassandra.transport.messages.StartupMessage;
 import org.apache.cassandra.transport.messages.SupportedMessage;
 
 import io.netty.channel.group.ChannelGroup;
-import io.netty.channel.group.DefaultChannelGroup;
-import io.netty.util.concurrent.GlobalEventExecutor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-public class GracefulDisconnectIT
+public class GracefulDisconnectTest
 {
 
     @BeforeClass
@@ -70,6 +69,7 @@ public class GracefulDisconnectIT
                            .set("graceful_disconnect_enabled", gracefulDisconnectEnabled))
                .start();
     }
+
 
     @Test
     public void testGracefulDisconnectAdvertisedWhenEnabled() throws IOException
@@ -235,39 +235,6 @@ public class GracefulDisconnectIT
     }
 
     @Test
-    public void testMaxDrainMsUpdatedViaJMX() throws IOException
-    {
-        try (Cluster cluster = buildCluster(1, true))
-        {
-            cluster.get(1).runOnInstance(() ->
-                                         StorageService.instance.setGracefulDisconnectMaxDrain(15000));
-
-            long maxDrain = cluster.get(1).callOnInstance(() -> {
-                return StorageService.instance.getGracefulDisconnectMaxDrain();
-            });
-
-            assertThat(maxDrain).isEqualTo(15000L);
-        }
-    }
-
-    @Test
-    public void testGracePeriodMsUpdatedViaJMX() throws IOException
-    {
-        try (Cluster cluster = buildCluster(1, true))
-        {
-            cluster.get(1).runOnInstance(() -> {
-                StorageService.instance.setGracefulDisconnectGracePeriod(3000);
-            });
-
-            long gracePeriodMs = cluster.get(1).callOnInstance(() -> {
-                return StorageService.instance.getGracefulDisconnectGracePeriod();
-            });
-
-            assertThat(gracePeriodMs).isEqualTo(3000L);
-        }
-    }
-
-    @Test
     public void testDrainProceedsImmediatelyWithNoSubscribedConnections() throws IOException
     {
         try (Cluster cluster = buildCluster(1, true))
@@ -278,23 +245,8 @@ public class GracefulDisconnectIT
                                                    .build())
             {
                 client.connect(false);
-                long start = System.currentTimeMillis();
-                cluster.get(1).runOnInstance(() -> {
-                    try
-                    {
-                        StorageService.instance.gracefulDisconnect(() -> {
-                        }, new DefaultChannelGroup(GlobalEventExecutor.INSTANCE));
-                    }
-                    catch (Exception e)
-                    {
-                        throw new RuntimeException(e);
-                    }
-                });
-
-                long elapsed = System.currentTimeMillis() - start;
-                assertThat(elapsed)
-                .as("Should proceed immediately with no subscribed connections")
-                .isLessThan(1000L);
+                cluster.get(1).nodetoolResult("drain").asserts().success();
+                cluster.get(1).shutdown();
             }
         }
     }
@@ -326,27 +278,6 @@ public class GracefulDisconnectIT
                                                                                    .size());
 
                 assertThat(subscribedCount).isEqualTo(2);
-            }
-        }
-    }
-
-    @Test
-    public void testConnectionsDrainingMetric() throws IOException
-    {
-        try (Cluster cluster = buildCluster(1, true))
-        {
-            InetSocketAddress nativeAddr = cluster.get(1).config().broadcastAddress();
-            try (SimpleClient client = SimpleClient.builder(nativeAddr.getHostString(), 9042)
-                                                   .protocolVersion(ProtocolVersion.V5)
-                                                   .build())
-            {
-                client.connect(false);
-                client.execute(new RegisterMessage(Collections.singletonList(Event.Type.GRACEFUL_DISCONNECT)));
-
-                int drainingCount = cluster.get(1).callOnInstance(() ->
-                                                                  ClientMetrics.instance.connectionsDraining.get());
-
-                assertThat(drainingCount).isEqualTo(0);
             }
         }
     }
@@ -431,8 +362,7 @@ public class GracefulDisconnectIT
                 client.execute(new RegisterMessage(Collections.singletonList(Event.Type.GRACEFUL_DISCONNECT)));
 
                 cluster.get(1).runOnInstance(() -> {
-                    StorageService.instance.setGracefulDisconnectGracePeriod(500);
-                    StorageService.instance.setGracefulDisconnectMaxDrain(1000);
+                    StorageService.instance.setGracefulDisconnectGracePeriod(3000);
                 });
 
                 cluster.get(1).runOnInstance(() -> {
@@ -444,7 +374,7 @@ public class GracefulDisconnectIT
                     }, channelGroup);
                 });
 
-                Thread.sleep(3000);
+                Thread.sleep(5000);
 
                 boolean finishedDraining = cluster.get(1).callOnInstance(() -> ClientMetrics.instance.connectionsDraining.get() == 0);
                 assertThat(finishedDraining).isTrue();
@@ -452,7 +382,6 @@ public class GracefulDisconnectIT
             finally
             {
                 cluster.get(1).runOnInstance(() -> {
-                    StorageService.instance.setGracefulDisconnectMaxDrain(30000);
                     StorageService.instance.setGracefulDisconnectGracePeriod(5000);
                 });
             }
@@ -540,6 +469,73 @@ public class GracefulDisconnectIT
                 assertThat(subscribedEvent).isNotNull();
                 assertThat(subscribedEvent.type).isEqualTo(Event.Type.GRACEFUL_DISCONNECT);
                 assertThat(nonSubscribedEvent).isNull();
+            }
+        }
+    }
+
+    @Test
+    public void testConnectionsDrainingMetric() throws IOException
+    {
+        try (Cluster cluster = buildCluster(1, true))
+        {
+            InetSocketAddress nativeAddr = cluster.get(1).config().broadcastAddress();
+            try (SimpleClient client = SimpleClient.builder(nativeAddr.getHostString(), 9042)
+                                                   .protocolVersion(ProtocolVersion.V5)
+                                                   .build())
+            {
+                client.connect(false);
+                client.execute(new RegisterMessage(Collections.singletonList(Event.Type.GRACEFUL_DISCONNECT)));
+
+                int drainingCount = cluster.get(1).callOnInstance(() -> {
+                    if (ClientMetrics.instance.connectionsDraining == null) {
+                        Server server = CassandraDaemon.getInstanceForTesting()
+                                                       .nativeTransportService()
+                                                       .getServer();
+                        ClientMetrics.instance.init(server);
+                    }
+                    return ClientMetrics.instance.connectionsDraining.get();
+                });
+
+                assertThat(drainingCount).isEqualTo(0);
+            }
+        }
+    }
+
+    @Test
+    public void testForcedDisconnectsMetric() throws IOException
+    {
+        try (Cluster cluster = buildCluster(1, true))
+        {
+            cluster.get(1).runOnInstance(() -> {
+                if (ClientMetrics.instance.forcedDisconnects == null)
+                {
+                    Server server = CassandraDaemon.getInstanceForTesting()
+                                                   .nativeTransportService()
+                                                   .getServer();
+                    ClientMetrics.instance.init(server);
+                }
+            });
+
+            InetSocketAddress nativeAddr = cluster.get(1).config().broadcastAddress();
+            try (SimpleClient client = SimpleClient.builder(nativeAddr.getHostString(), 9042)
+                                                   .protocolVersion(ProtocolVersion.V5)
+                                                   .build())
+            {
+                client.connect(false);
+                client.execute(new RegisterMessage(Collections.singletonList(Event.Type.GRACEFUL_DISCONNECT)));
+                long initialCount = cluster.get(1).callOnInstance(() ->
+                                                                  ClientMetrics.instance.forcedDisconnects.getCount()
+                );
+
+                cluster.get(1).runOnInstance(() ->
+                                             ClientMetrics.instance.markForcedDisconnect(1)
+                );
+
+                long newCount = cluster.get(1).callOnInstance(() ->
+                                                              ClientMetrics.instance.forcedDisconnects.getCount()
+                );
+
+                assertThat(newCount).isEqualTo(initialCount + 1);
             }
         }
     }

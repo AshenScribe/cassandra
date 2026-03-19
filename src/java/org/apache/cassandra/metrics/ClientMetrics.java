@@ -73,10 +73,7 @@ public final class ClientMetrics
 
     public AtomicInteger connectionsDraining;
 
-    @SuppressWarnings({ "unused", "FieldCanBeLocal" })
-    private Gauge<Integer> connectionsDrainingGauge;
-
-    private Meter forcedDisconnects;
+    public Meter forcedDisconnects;
 
     @VisibleForTesting
     Gauge<Integer> encryptedConnectedNativeClients;
@@ -225,7 +222,7 @@ public final class ClientMetrics
         registerGauge("RequestsSize", ClientResourceLimits::getCurrentGlobalUsage);
 
         connectionsDraining = new AtomicInteger();
-        connectionsDrainingGauge = registerGauge("ConnectionsDraining", connectionsDraining::get);
+        registerGauge("ConnectionsDraining", connectionsDraining::get);
         forcedDisconnects = registerMeter("ForcedDisconnects");
 
         CassandraReservoir ipUsageReservoir = ClientResourceLimits.ipUsageReservoir();
