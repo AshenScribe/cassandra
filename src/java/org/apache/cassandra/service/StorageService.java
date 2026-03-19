@@ -3886,7 +3886,7 @@ public class StorageService extends NotificationBroadcasterSupport implements IE
                 drainComplete.countDown();
             }
         });
-        drainComplete.await(DatabaseDescriptor.getGracefulDisconnectMaxDrainMs(), MILLISECONDS);
+        drainComplete.await(DatabaseDescriptor.getGracefulDisconnectMaxDrain(), MILLISECONDS);
     }
 
     private void gracefulDisconnect(Runnable defaultAction)
@@ -3926,7 +3926,7 @@ public class StorageService extends NotificationBroadcasterSupport implements IE
             }
         };
         ScheduledFuture<?> timeoutTask = ScheduledExecutors.nonPeriodicTasks
-                                         .schedule(runOnceAction, DatabaseDescriptor.getGracefulDisconnectMaxDrainMs(), MILLISECONDS);
+                                         .schedule(runOnceAction, DatabaseDescriptor.getGracefulDisconnectMaxDrain(), MILLISECONDS);
 
         // Use a counter rather than channelGroup.isEmpty() because DefaultChannelGroup removes
         // channels on close; under concurrent closes, a listener could see isEmpty()==true
