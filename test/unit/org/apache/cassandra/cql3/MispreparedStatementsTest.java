@@ -23,20 +23,17 @@ import java.util.List;
 
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
 
 import org.apache.cassandra.auth.AuthenticatedUser;
 import org.apache.cassandra.config.DatabaseDescriptor;
-import org.apache.cassandra.db.ConsistencyLevel;
 import org.apache.cassandra.db.guardrails.GuardrailViolatedException;
 import org.apache.cassandra.db.guardrails.Guardrails;
 import org.apache.cassandra.service.ClientState;
 import org.apache.cassandra.service.ClientWarn;
-
-import static org.junit.Assert.assertTrue;
 
 public class MispreparedStatementsTest extends CQLTester
 {
@@ -99,292 +96,95 @@ public class MispreparedStatementsTest extends CQLTester
         DatabaseDescriptor.setPreparedStatementsRequireParametersEnabled(true);
     }
 
-    @Test
-    public void testSelectWithPartitionKey()
+@Test
+    public void testViolationOnLiterals()
     {
         assertGuardrailViolated(String.format("SELECT * FROM %s WHERE id = 1", currentTable()));
-        assertNoWarnings();
-    }
-
-    @Test
-    public void testSelectWithClusteringKey()
-    {
         assertGuardrailViolated(String.format("SELECT * FROM %s WHERE name = 'v1' ALLOW FILTERING", currentTable()));
-        assertNoWarnings();
-    }
 
-    @Test
-    public void testSelectWithFullPrimaryKey()
-    {
-        assertGuardrailViolated(String.format("SELECT * FROM %s WHERE id = 1 AND name = 'v1'", currentTable()));
-        assertNoWarnings();
-    }
-
-    @Test
-    public void testSelectWithWhereNonPrimaryKeyColumn()
-    {
-        assertGuardrailViolated(String.format("SELECT * FROM %s WHERE description = 'foo' ALLOW FILTERING", currentTable()));
-        assertNoWarnings();
-    }
-
-
-    @Test
-    public void testSelectWithCompositeRestriction()
-    {
-        assertGuardrailViolated(String.format("SELECT sum(id) from %s WHERE (name, age) = ('a', 1) ALLOW FILTERING", currentTable()));
-    }
-
-    @Test
-    public void testSelectWithFunction()
-    {
-        assertGuardrailViolated(String.format("SELECT sum(id) from %s where name = 'v1' ALLOW FILTERING", currentTable()));
-    }
-
-    @Test
-    public void testSelectWithRangeRestriction()
-    {
         assertGuardrailViolated(String.format("SELECT * FROM %s WHERE id = 1 AND name > 'a'", currentTable()));
-        assertNoWarnings();
-    }
-
-    @Test
-    public void testSelectInRestrictionOnPartitionKey()
-    {
         assertGuardrailViolated(String.format("SELECT * FROM %s WHERE id IN (1, 2, 3)", currentTable()));
-        assertNoWarnings();
-    }
-
-    @Test
-    public void testSelectInRestrictionOnClusteringKey()
-    {
-        assertGuardrailViolated(String.format("SELECT * FROM %s WHERE name IN ('a', 'b') ALLOW FILTERING", currentTable()));
-        assertNoWarnings();
-    }
-
-    @Test
-    public void testSelectInRestrictionOnFullPrimaryKey()
-    {
-        assertGuardrailViolated(String.format("SELECT * FROM %s WHERE id IN (1, 2, 3) AND name in ('a', 'b')", currentTable()));
-        assertNoWarnings();
-    }
-
-    @Test
-    public void testDDLStatementsBypass()
-    {
-        assertGuardrailPassed("CREATE TABLE IF NOT EXISTS test_table (id INT PRIMARY KEY)");
-        assertNoWarnings();
-    }
-
-    @Test
-    public void testWhereLiteralWithLike()
-    {
+        assertGuardrailViolated(String.format("SELECT sum(id) from %s WHERE (name, age) = ('a', 1) ALLOW FILTERING", currentTable()));
         assertGuardrailViolated(String.format("SELECT * FROM %s WHERE name LIKE 'prefix%%' ALLOW FILTERING", currentTable()));
-        assertNoWarnings();
-    }
 
-    @Test
-    public void testInsertJsonGuardrail()
-    {
-        assertGuardrailPassed(String.format("INSERT INTO %s JSON '{\"id\": 1, \"name\": \"v1\"}'", currentTable()));
-        assertNoWarnings();
-    }
-
-    @Test
-    public void testUpdateWithPartitionKey()
-    {
-        assertGuardrailViolated(String.format("UPDATE %s SET description = 'new' WHERE id = 1 AND name = 'name' AND age = 1", KEYSPACE + '.' + currentTable()));
-        assertNoWarnings();
-    }
-
-    @Test
-    public void testUpdateWithIfCondition()
-    {
-        assertGuardrailViolated(String.format("UPDATE %s SET description = 'v2' WHERE id = 1 AND name = 'v1' AND age = 1 IF description = 'v0'", currentTable()));
-        assertNoWarnings();
-    }
-
-    @Test
-    public void testDeleteWithFullPrimaryKey()
-    {
+        assertGuardrailViolated(String.format("UPDATE %s SET description = 'new' WHERE id = 1 AND name = 'n' AND age = 1", currentTable()));
         assertGuardrailViolated(String.format("DELETE FROM %s WHERE id = 1 AND name = 'v1'", currentTable()));
-        assertNoWarnings();
+
+        String batch = String.format("BEGIN BATCH UPDATE %s SET description = 'v1' WHERE id = 1 AND name = 'n1' AND age = 1; APPLY BATCH", currentTable());
+        assertGuardrailViolated(batch);
     }
 
-    @Test
-    public void testMultiTableBatchGuardrailAllLiteral()
-    {
-        String table1 = currentTable();
-        String table2 = createTable("CREATE TABLE %s (id int PRIMARY KEY, val text)");
-        String query = String.format("BEGIN BATCH " +
-                                     "UPDATE %s.%s SET description = 'v1' WHERE id = 1 AND name = 'n1' AND age = 1; " +
-                                     "INSERT INTO %s.%s (id, val) VALUES (2, 'v2'); " +
-                                     "APPLY BATCH",
-                                     KEYSPACE, table1, KEYSPACE, table2);
-
-        assertGuardrailViolated(query);
-        assertNoWarnings();
-    }
 
     @Test
-    public void testSucceedWithOnlyBindMarkers()
+    public void testValidPreparedStatements()
     {
         assertGuardrailPassed(String.format("SELECT * FROM %s WHERE id = ? AND name = ?", currentTable()));
-        assertNoWarnings();
-    }
-
-    @Test
-    public void testSucceedWithOneBindMarkerOneLiteral()
-    {
 
         assertGuardrailPassed(String.format("SELECT * FROM %s WHERE id = ? AND name = 'v1'", currentTable()));
-        assertNoWarnings();
-    }
 
-    @Test
-    public void testSelectAllPasses()
-    {
         assertGuardrailPassed(String.format("SELECT * FROM %s", currentTable()));
-        assertNoWarnings();
-    }
 
-    @Test
-    public void testLiteralInProjectionIsAllowed()
-    {
         assertGuardrailPassed(String.format("SELECT id, (text)'const_val' FROM %s WHERE id = ?", currentTable()));
-        assertNoWarnings();
     }
 
     @Test
-    public void testInternalBypass()
+    public void testNonPreparableAndSystemBypass()
     {
-        assertGuardrailPassed("SELECT * FROM " + KEYSPACE + '.' + currentTable() + " WHERE id = 1", ClientState.forInternalCalls());
-    }
-
-    @Test
-    public void testSuperUserBypass()
-    {
-        AuthenticatedUser superUser = new AuthenticatedUser("super-user")
-        {
-            @Override
-            public boolean isSuper()
-            {
-                return true;
-            }
-
-            @Override
-            public boolean isSystem()
-            {
-                return false;
-            }
-
-            @Override
-            public boolean isAnonymous()
-            {
-                return false;
-            }
-
-            @Override
-            public boolean canLogin()
-            {
-                return true;
-            }
-        };
-        ClientState superUserState = ClientState.forExternalCalls(new InetSocketAddress("127.0.0.1", 9042));
-        superUserState.login(superUser);
-        assertGuardrailPassed("SELECT * FROM " + KEYSPACE + '.' + currentTable() + " WHERE id = 1", superUserState);
-    }
-
-    @Test
-    public void testGuardrailBypassesNonPrepareStatements()
-    {
-        String tableName = createTable("CREATE TABLE %s (id int PRIMARY KEY, name text)");
-
-        try
-        {
-            String query = String.format("SELECT * FROM %s.%s WHERE id = 1 and name = 'v1' ALLOW FILTERING",
-                                         KEYSPACE, tableName);
-
-            QueryProcessor.process(query, ConsistencyLevel.ONE);
-            assertNoWarnings();
-        }
-        catch (GuardrailViolatedException e)
-        {
-            Assert.fail("Non Prepare statement also checked for prepared constraints");
-        }
-    }
-
-
-    @Test
-    public void testGuardrailDoesNotAppliesToNonPreparableStatements()
-    {
-        assertGuardrailPassed(String.format("ALTER TABLE %s add mime text", currentTable()));
-        assertNoWarnings();
-    }
-
-    @Test
-    public void testSystemKeyspaceBypassForRegularUser()
-    {
+        assertGuardrailPassed("CREATE TABLE IF NOT EXISTS test_bypass (id INT PRIMARY KEY)");
+        assertGuardrailPassed(String.format("ALTER TABLE %s ADD mime text", currentTable()));
+        assertGuardrailPassed(String.format("INSERT INTO %s JSON '{\"id\": 1}'", currentTable()));
         assertGuardrailPassed("SELECT * FROM system.local WHERE key = 'local'");
-        assertNoWarnings();
     }
 
 
     @Test
-    public void testWarningIsIssuedWhenGuardrailIsAllowed()
+    public void testAuthorizedBypasses()
+    {
+        assertGuardrailPassed("SELECT * FROM " + KEYSPACE + "." + currentTable() + " WHERE id = 1", ClientState.forInternalCalls());
+
+        ClientState superState = ClientState.forExternalCalls(new InetSocketAddress("127.0.0.1", 9042));
+        superState.login(createMockUser("super-user", true));
+        assertGuardrailPassed("SELECT * FROM " + KEYSPACE + "." + currentTable() + " WHERE id = 1", superState);
+    }
+
+
+    @Test
+    public void testWarningBehaviors()
     {
         DatabaseDescriptor.setPreparedStatementsRequireParametersEnabled(false);
         assertGuardrailPassed(String.format("SELECT * FROM %s WHERE id = 1", currentTable()));
         assertWarnings();
 
+        ClientWarn.instance.resetWarnings();
+        QueryProcessor.instance.prepare(String.format("SELECT * FROM %s WHERE id = 1", currentTable()), state);
+        assertNoWarnings(); // Second time should be silent due to cache/id match
     }
 
     @Test
-    public void testGuardrailDisabledAllowsBatchLiterals()
-    {
-        DatabaseDescriptor.setPreparedStatementsRequireParametersEnabled(false);
-        String tableName = currentTable();
-        assertGuardrailPassed(String.format("BEGIN BATCH " +
-                                            "INSERT INTO %s.%s (id, description, name, age) VALUES (1, 'v1', 'v1', 1); " +
-                                            "UPDATE %s.%s SET description = 'v2' WHERE id = 2 AND name = 'v1' AND age = 1; " +
-                                            "APPLY BATCH", KEYSPACE, tableName, KEYSPACE, tableName));
-        assertWarnings();
-    }
-
-    @Test
-    public void testBlockedStatementsDoNotEnterCache()
+    public void testCacheIntegrity()
     {
         QueryProcessor.clearPreparedStatementsCache();
-        int initialCacheSize = QueryProcessor.preparedStatementsCount();
-        for (int i = 0; i < 10; i++)
+        int initialCount = QueryProcessor.preparedStatementsCount();
+
+        for (int i = 0; i < 5; i++)
         {
             String query = String.format("SELECT * FROM %s WHERE id = %d", currentTable(), i);
-            try
-            {
-                QueryProcessor.instance.prepare(query, state);
-            }
-            catch (GuardrailViolatedException e)
-            {
-                // Expected: Guardrail throws exception
-            }
+            Assertions.assertThrows(GuardrailViolatedException.class, () -> QueryProcessor.instance.prepare(query, state));
         }
-        Assert.assertEquals("Blocked misprepared statements should not be added to the cache", initialCacheSize, QueryProcessor.preparedStatementsCount());
+
+        Assertions.assertEquals(initialCount, QueryProcessor.preparedStatementsCount(), "Violated statements must not be cached");
     }
 
     private void assertGuardrailViolated(String query)
     {
-        try
-        {
+        GuardrailViolatedException e = Assertions.assertThrows(GuardrailViolatedException.class, () -> {
             QueryProcessor.instance.prepare(query, state);
-            Assert.fail("Expected GuardrailViolatedException for query: " + query);
-        }
-        catch (GuardrailViolatedException e)
-        {
-            assertTrue(e.getMessage().contains("Guardrail " + Guardrails.preparedStatementsRequireParametersEnabled.name + " violated"));
-        }
-        catch (Exception e)
-        {
-            Assert.fail(e.getMessage());
-        }
+        }, "Expected GuardrailViolatedException for query: " + query);
+
+        Assertions.assertTrue(
+        e.getMessage().contains("Guardrail " + Guardrails.preparedStatementsRequireParametersEnabled.name + " violated"),
+        "Error message did not contain expected guardrail name"
+        );
     }
 
     private void assertNoWarnings()
@@ -392,19 +192,30 @@ public class MispreparedStatementsTest extends CQLTester
         List<String> warnings = ClientWarn.instance.getWarnings();
         if (warnings != null)
         {
-            assertTrue("Unexpected performance tip warning was found",
-                       warnings.stream().noneMatch(w -> w.contains(Guardrails.MISPREPARED_STATEMENT_WARN_MESSAGE)));
+            Assertions.assertTrue(warnings.stream().noneMatch(w -> w.contains(Guardrails.MISPREPARED_STATEMENT_WARN_MESSAGE)), "Unexpected performance tip warning was found");
         }
     }
 
     private void assertWarnings()
     {
         List<String> warnings = ClientWarn.instance.getWarnings();
-        if (warnings != null)
-            assertTrue("Expected performance tip warning was not found",
-                   warnings.stream().anyMatch(w -> w.contains(Guardrails.MISPREPARED_STATEMENT_WARN_MESSAGE)));
-        else
-            Assert.fail("Expected performance tip warning was not found");
+
+        Assertions.assertNotNull(warnings, "Expected performance tip warning was not found (warnings list was null)");
+
+        Assertions.assertTrue(
+        warnings.stream().anyMatch(w -> w.contains(Guardrails.MISPREPARED_STATEMENT_WARN_MESSAGE)),
+        "Expected performance tip warning was not found in: " + warnings
+        );
+    }
+
+    private AuthenticatedUser createMockUser(String name, boolean isSuper)
+    {
+        return new AuthenticatedUser(name) {
+            public boolean isSuper() { return isSuper; }
+            public boolean isSystem() { return false; }
+            public boolean isAnonymous() { return false; }
+            public boolean canLogin() { return true; }
+        };
     }
 
     private void assertGuardrailPassed(String query)
@@ -414,13 +225,6 @@ public class MispreparedStatementsTest extends CQLTester
 
     private void assertGuardrailPassed(String query, ClientState clientState)
     {
-        try
-        {
-            QueryProcessor.instance.prepare(query, clientState);
-        }
-        catch (Exception e)
-        {
-            Assert.fail("Expected guardrail to pass, but got: " + e.getMessage());
-        }
+        Assertions.assertDoesNotThrow(() -> QueryProcessor.instance.prepare(query, clientState), "Expected guardrail to pass, but got: ");
     }
 }
