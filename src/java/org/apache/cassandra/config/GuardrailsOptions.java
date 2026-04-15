@@ -1330,22 +1330,6 @@ public class GuardrailsOptions implements GuardrailsConfig
     }
 
     @Override
-    public boolean getPreparedStatementsRequireParametersEnabled()
-    {
-        return config.prepared_statements_require_parameters_enabled;
-    }
-
-
-    @Override
-    public void setPreparedStatementsRequireParametersEnabled(boolean enabled)
-    {
-        updatePropertyWithLogging("prepared_statements_require_parameters_enabled",
-                                  enabled,
-                                  () -> config.prepared_statements_require_parameters_enabled,
-                                  x -> config.prepared_statements_require_parameters_enabled = x);
-    }
-
-    @Override
     public void setVectorTypeEnabled(boolean enabled)
     {
         updatePropertyWithLogging("vector_type_enabled",
@@ -1382,6 +1366,36 @@ public class GuardrailsOptions implements GuardrailsConfig
     public boolean getUnsetTrainingMinFrequencyEnabled()
     {
         return config.unset_training_min_frequency_enabled;
+    }
+
+    @Override
+    public boolean getPreparedStatementsRequireParametersWarn()
+    {
+        return config.prepared_statements_require_parameters_warn;
+    }
+
+    @Override
+    public boolean getPreparedStatementsRequireParametersFail()
+    {
+        return config.prepared_statements_require_parameters_fail;
+    }
+
+    @Override
+    public void setPreparedStatementsRequireParametersWarn(boolean enabled)
+    {
+        updatePropertyWithLogging("prepared_statements_require_parameters_warn",
+                                  enabled,
+                                  () -> config.prepared_statements_require_parameters_warn,
+                                  x -> config.prepared_statements_require_parameters_warn = x);
+    }
+
+    @Override
+    public void setPreparedStatementsRequireParametersFail(boolean enabled)
+    {
+        updatePropertyWithLogging("prepared_statements_require_parameters_fail",
+                                  enabled,
+                                  () -> config.prepared_statements_require_parameters_fail,
+                                  x -> config.prepared_statements_require_parameters_fail = x);
     }
 
     private static <T> void updatePropertyWithLogging(String propertyName, T newValue, Supplier<T> getter, Consumer<T> setter)

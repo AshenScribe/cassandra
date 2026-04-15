@@ -156,7 +156,7 @@ import static org.apache.cassandra.utils.ByteBufferUtil.UNSET_BYTE_BUFFER;
  * Note that select statements can be accessed by multiple threads, so we cannot rely on mutable attributes.
  */
 @ThreadSafe
-public class SelectStatement implements CQLStatement.SingleKeyspaceCqlStatement, CQLStatement.ReturningCQLStatement, PreparableStatement
+public class SelectStatement implements CQLStatement.SingleKeyspaceCqlStatement, CQLStatement.ReturningCQLStatement
 {
     private static final Logger logger = LoggerFactory.getLogger(SelectStatement.class);
     private static final NoSpamLogger noSpamLogger = NoSpamLogger.getLogger(SelectStatement.logger, 1, TimeUnit.MINUTES);
@@ -337,26 +337,13 @@ public class SelectStatement implements CQLStatement.SingleKeyspaceCqlStatement,
         }
     }
 
+    @Override
     public void validate(ClientState state) throws InvalidRequestException
     {
         if (parameters.allowFiltering && !SchemaConstants.isSystemKeyspace(table.keyspace))
             Guardrails.allowFilteringEnabled.ensureEnabled(state);
-    }
 
-    @Override
-    public void validatePrepare(ClientState state)
-    {
-        if (SchemaConstants.isSystemKeyspace(table.keyspace))
-            return;
-        boolean hasRestrictions = restrictions != null &&
-                                  (restrictions.hasPartitionKeyRestrictions() ||
-                                   restrictions.hasClusteringColumnsRestrictions() ||
-                                   restrictions.hasNonPrimaryKeyRestrictions());
-        if (getBindVariables().isEmpty()
-            && hasRestrictions)
-        {
-            Guardrails.onMisprepared(state, table.keyspace, table.name);
-        }
+        Guardrails.preparedStatementsRequireParameters.guard(this, restrictions, state);
     }
 
     @Override

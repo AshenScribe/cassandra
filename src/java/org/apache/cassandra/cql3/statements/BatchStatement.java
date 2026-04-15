@@ -91,7 +91,7 @@ import static org.apache.cassandra.cql3.statements.RequestValidations.checkFalse
 /**
  * A <code>BATCH</code> statement parsed from a CQL query.
  */
-public class BatchStatement implements CQLStatement.CompositeCQLStatement, PreparableStatement
+public class BatchStatement implements CQLStatement.CompositeCQLStatement
 {
     public enum Type
     {
@@ -334,15 +334,6 @@ public class BatchStatement implements CQLStatement.CompositeCQLStatement, Prepa
     {
         for (ModificationStatement statement : statements)
             statement.validate(state);
-    }
-
-    @Override
-    public void validatePrepare(ClientState state)
-    {
-        for (ModificationStatement statement : statements)
-        {
-            statement.validatePrepare(state);
-        }
     }
 
     @Override

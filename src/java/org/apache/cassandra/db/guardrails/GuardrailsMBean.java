@@ -55,13 +55,6 @@ public interface GuardrailsMBean
     void setKeyspacesThreshold(int warn, int fail);
 
     /**
-     * @return the use of misprepared statement is enabled
-     */
-    boolean getMispreparedStatementsEnabled();
-
-    void setMispreparedStatementsEnabled(boolean enabled);
-
-    /**
      * @return The threshold to warn when creating more tables than threshold.
      * -1 means disabled.
      */
@@ -1197,4 +1190,12 @@ public interface GuardrailsMBean
      * dictionary compressor as frequently as needed, without any limits, false otherwise.
      */
     boolean getUnsetTrainingMinFrequencyEnabled();
+
+    boolean getPreparedStatementsRequireParametersWarn();
+
+    boolean getPreparedStatementsRequireParametersFail();
+
+    void setPreparedStatementsRequireParametersWarn(boolean enabled);
+
+    void setPreparedStatementsRequireParametersFail(boolean enabled);
 }

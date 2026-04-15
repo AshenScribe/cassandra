@@ -181,7 +181,7 @@ public class MispreparedStatementsTest extends CQLTester
         Assertions.assertThatThrownBy(() -> {
                       QueryProcessor.instance.prepare(query, state);
                   }).isInstanceOf(GuardrailViolatedException.class)
-                  .hasMessageContaining("Guardrail " + Guardrails.preparedStatementsRequireParametersEnabled.name + " violated");
+                  .hasMessageContaining("Guardrail " + Guardrails.preparedStatementsRequireParameters.name + " violated");
     }
 
     private void assertNoWarnings()

@@ -407,40 +407,6 @@ public interface GuardrailsConfig
     boolean getVectorTypeEnabled();
 
     /**
-     * <p>
-     * A statement is considered "mis-prepared" if it contains only hardcoded liter values and without any bind markers
-     * instead of bind markers. This is a performance anti-pattern because it prevents
-     * query plan reuse and floods the server-side Prepared Statement Cache with
-     * unique entries.
-     * <p>
-     * <b>LWT and Batch Considerations:</b>
-     * This check applies to both the {@code WHERE} clause and the {@code IF} conditions
-     * in Lightweight Transactions (LWT). For example, the following is considered
-     * mis-prepared because of the hardcoded literals:
-     * <pre>{@code
-     * UPDATE users SET description = 'v2' WHERE id = 1 AND name = 'v1' IF description = 'v0'
-     * }</pre>
-     * To be compliant, it should use bind markers ({@code ?}):
-     * <pre>{@code
-     * UPDATE users SET description = ? WHERE id = ? AND name = ? IF description = ?
-     * }</pre>
-     * For {@code BATCH} statements, if any individual statement within the batch is
-     * identified as mis-prepared, the entire batch triggers this guardrail.
-     * @return {@code true} if the requirement for parameters in prepared statements is strictly enforced (queries will fail).
-     *         {@code false} if the requirement is not strictly enforced (queries will only log a warning).
-     *         Defaults to {@code false}.
-     */
-
-    boolean getPreparedStatementsRequireParametersEnabled();
-
-    /**
-     * Sets whether prepared statements are strictly required to have parameters.
-     *
-     * @param enabled {@code true} to reject statements without parameters, {@code false} to only warn.
-     */
-    void setPreparedStatementsRequireParametersEnabled(boolean enabled);
-
-    /**
      * Sets whether new columns can be created with vector type
      *
      * @param enabled
@@ -716,4 +682,12 @@ public interface GuardrailsConfig
      * dictionary compressor as frequently as needed, without any limits, false otherwise.
      */
     boolean getUnsetTrainingMinFrequencyEnabled();
+
+    boolean getPreparedStatementsRequireParametersWarn();
+
+    boolean getPreparedStatementsRequireParametersFail();
+
+    void setPreparedStatementsRequireParametersWarn(boolean enabled);
+
+    void setPreparedStatementsRequireParametersFail(boolean enabled);
 }

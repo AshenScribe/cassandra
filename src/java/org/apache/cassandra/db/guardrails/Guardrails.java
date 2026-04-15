@@ -618,16 +618,9 @@ public final class Guardrails implements GuardrailsMBean
                      format("The keyspace %s has a replication factor of %s, above the %s threshold of %s.",
                             what, value, isWarning ? "warning" : "failure", threshold));
 
-    /**
-     * Prevents cache overflow and eviction caused by the anti-pattern of preparing queries with
-     * hardcoded literals instead of bind markers. This prevents filling the statement cache with non-reusable entries.
-     */
 
-    public static final EnableFlag preparedStatementsRequireParametersEnabled =
-    new EnableFlag("prepared_statements_require_parameters_enabled",
-                   "misprepared statements create non-reusable query entries and cause cache overflow",
-                   state -> CONFIG_PROVIDER.getOrCreate(state).getPreparedStatementsRequireParametersEnabled(),
-                   "misprepared statements require parameters enabled");
+    public static final PreparedStatementParameterRequirementGuardrail preparedStatementsRequireParameters =
+    new PreparedStatementParameterRequirementGuardrail();
 
     public static final MaxThreshold maximumAllowableTimestamp =
     new MaxThreshold("maximum_timestamp",
@@ -732,18 +725,6 @@ public final class Guardrails implements GuardrailsMBean
     public void setKeyspacesThreshold(int warn, int fail)
     {
         DEFAULT_CONFIG.setKeyspacesThreshold(warn, fail);
-    }
-
-    @Override
-    public boolean getMispreparedStatementsEnabled()
-    {
-        return DEFAULT_CONFIG.getPreparedStatementsRequireParametersEnabled();
-    }
-
-    @Override
-    public void setMispreparedStatementsEnabled(boolean enabled)
-    {
-        DEFAULT_CONFIG.setPreparedStatementsRequireParametersEnabled(enabled);
     }
 
     @Override
@@ -1879,6 +1860,30 @@ public final class Guardrails implements GuardrailsMBean
         return DEFAULT_CONFIG.getUnsetTrainingMinFrequencyEnabled();
     }
 
+    @Override
+    public boolean getPreparedStatementsRequireParametersWarn()
+    {
+        return DEFAULT_CONFIG.getPreparedStatementsRequireParametersWarn();
+    }
+
+    @Override
+    public boolean getPreparedStatementsRequireParametersFail()
+    {
+        return DEFAULT_CONFIG.getPreparedStatementsRequireParametersFail();
+    }
+
+    @Override
+    public void setPreparedStatementsRequireParametersWarn(boolean enabled)
+    {
+        DEFAULT_CONFIG.setPreparedStatementsRequireParametersWarn(enabled);
+    }
+
+    @Override
+    public void setPreparedStatementsRequireParametersFail(boolean enabled)
+    {
+        DEFAULT_CONFIG.setPreparedStatementsRequireParametersFail(enabled);
+    }
+
     private static String toCSV(Set<String> values)
     {
         return values == null || values.isEmpty() ? "" : String.join(",", values);
@@ -1950,17 +1955,5 @@ public final class Guardrails implements GuardrailsMBean
         return duration == null
                ? Long.MIN_VALUE
                : (ClientState.getLastTimestampMicros() - duration.toMicroseconds());
-    }
-
-    public static void onMisprepared(ClientState state, String keyspace, String tableName)
-    {
-        if (preparedStatementsRequireParametersEnabled.isEnabled(state) && preparedStatementsRequireParametersEnabled.enabled(state))
-        {
-            preparedStatementsRequireParametersEnabled.fail(preparedStatementsRequireParametersEnabled.name + " is not allowed", state);
-        }
-        else
-        {
-            preparedStatementsRequireParametersEnabled.warn(MISPREPARED_STATEMENT_WARN_MESSAGE + "\n Keyspace: " + keyspace + "\n table: " + tableName);
-        }
     }
 }

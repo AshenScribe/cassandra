@@ -53,7 +53,6 @@ import org.apache.cassandra.cql3.functions.UDFunction;
 import org.apache.cassandra.cql3.selection.ResultSetBuilder;
 import org.apache.cassandra.cql3.statements.BatchStatement;
 import org.apache.cassandra.cql3.statements.ModificationStatement;
-import org.apache.cassandra.cql3.statements.PreparableStatement;
 import org.apache.cassandra.cql3.statements.QualifiedStatement;
 import org.apache.cassandra.cql3.statements.SelectStatement;
 import org.apache.cassandra.cql3.statements.TransactionStatement;
@@ -495,11 +494,6 @@ public class QueryProcessor implements QueryHandler
         // Note: if 2 threads prepare the same query, we'll live so don't bother synchronizing
         CQLStatement statement = raw.prepare(clientState);
         statement.validate(clientState);
-
-        if (statement instanceof PreparableStatement)
-        {
-            ((PreparableStatement) statement).validatePrepare(clientState);
-        }
 
         // Set CQL string for AlterSchemaStatement as this is used to serialize the transformation
         // in the cluster metadata log
