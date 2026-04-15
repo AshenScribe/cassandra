@@ -21,12 +21,13 @@ package org.apache.cassandra.cql3;
 import java.net.InetSocketAddress;
 import java.util.List;
 
+import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.jupiter.api.Assertions;
 
 import org.apache.cassandra.auth.AuthenticatedUser;
 import org.apache.cassandra.config.DatabaseDescriptor;
@@ -96,7 +97,7 @@ public class MispreparedStatementsTest extends CQLTester
         DatabaseDescriptor.setPreparedStatementsRequireParametersEnabled(true);
     }
 
-@Test
+    @Test
     public void testViolationOnLiterals()
     {
         assertGuardrailViolated(String.format("SELECT * FROM %s WHERE id = 1", currentTable()));
@@ -169,22 +170,18 @@ public class MispreparedStatementsTest extends CQLTester
         for (int i = 0; i < 5; i++)
         {
             String query = String.format("SELECT * FROM %s WHERE id = %d", currentTable(), i);
-            Assertions.assertThrows(GuardrailViolatedException.class, () -> QueryProcessor.instance.prepare(query, state));
+            Assertions.assertThatThrownBy(() -> QueryProcessor.instance.prepare(query, state)).isInstanceOf(GuardrailViolatedException.class);
         }
 
-        Assertions.assertEquals(initialCount, QueryProcessor.preparedStatementsCount(), "Violated statements must not be cached");
+        Assert.assertEquals("Violated statements must not be cached", initialCount, QueryProcessor.preparedStatementsCount());
     }
 
     private void assertGuardrailViolated(String query)
     {
-        GuardrailViolatedException e = Assertions.assertThrows(GuardrailViolatedException.class, () -> {
-            QueryProcessor.instance.prepare(query, state);
-        }, "Expected GuardrailViolatedException for query: " + query);
-
-        Assertions.assertTrue(
-        e.getMessage().contains("Guardrail " + Guardrails.preparedStatementsRequireParametersEnabled.name + " violated"),
-        "Error message did not contain expected guardrail name"
-        );
+        Assertions.assertThatThrownBy(() -> {
+                      QueryProcessor.instance.prepare(query, state);
+                  }).isInstanceOf(GuardrailViolatedException.class)
+                  .hasMessageContaining("Guardrail " + Guardrails.preparedStatementsRequireParametersEnabled.name + " violated");
     }
 
     private void assertNoWarnings()
@@ -192,7 +189,8 @@ public class MispreparedStatementsTest extends CQLTester
         List<String> warnings = ClientWarn.instance.getWarnings();
         if (warnings != null)
         {
-            Assertions.assertTrue(warnings.stream().noneMatch(w -> w.contains(Guardrails.MISPREPARED_STATEMENT_WARN_MESSAGE)), "Unexpected performance tip warning was found");
+            Assert.assertTrue("Unexpected performance tip warning was found",
+                              warnings.stream().noneMatch(w -> w.contains(Guardrails.MISPREPARED_STATEMENT_WARN_MESSAGE)));
         }
     }
 
@@ -200,21 +198,35 @@ public class MispreparedStatementsTest extends CQLTester
     {
         List<String> warnings = ClientWarn.instance.getWarnings();
 
-        Assertions.assertNotNull(warnings, "Expected performance tip warning was not found (warnings list was null)");
+        Assert.assertNotNull("Expected performance tip warning was not found (warnings list was null)", warnings);
 
-        Assertions.assertTrue(
-        warnings.stream().anyMatch(w -> w.contains(Guardrails.MISPREPARED_STATEMENT_WARN_MESSAGE)),
-        "Expected performance tip warning was not found in: " + warnings
-        );
+        Assert.assertTrue("Expected performance tip warning was not found in: " + warnings,
+                          warnings.stream().anyMatch(w -> w.contains(Guardrails.MISPREPARED_STATEMENT_WARN_MESSAGE)));
     }
 
     private AuthenticatedUser createMockUser(String name, boolean isSuper)
     {
-        return new AuthenticatedUser(name) {
-            public boolean isSuper() { return isSuper; }
-            public boolean isSystem() { return false; }
-            public boolean isAnonymous() { return false; }
-            public boolean canLogin() { return true; }
+        return new AuthenticatedUser(name)
+        {
+            public boolean isSuper()
+            {
+                return isSuper;
+            }
+
+            public boolean isSystem()
+            {
+                return false;
+            }
+
+            public boolean isAnonymous()
+            {
+                return false;
+            }
+
+            public boolean canLogin()
+            {
+                return true;
+            }
         };
     }
 
@@ -225,6 +237,6 @@ public class MispreparedStatementsTest extends CQLTester
 
     private void assertGuardrailPassed(String query, ClientState clientState)
     {
-        Assertions.assertDoesNotThrow(() -> QueryProcessor.instance.prepare(query, clientState), "Expected guardrail to pass, but got: ");
+        QueryProcessor.instance.prepare(query, clientState);
     }
 }

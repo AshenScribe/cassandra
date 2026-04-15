@@ -25,12 +25,12 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SimpleStatement;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
 
+import org.assertj.core.api.Assertions;
 import org.assertj.core.api.ListAssert;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.jupiter.api.Assertions;
 
 import org.apache.cassandra.db.ColumnFamilyStore;
 import org.apache.cassandra.db.Keyspace;
@@ -100,37 +100,37 @@ public class MispreparedStatementsIntegrationTest extends GuardrailTester
     {
         createTable("CREATE TABLE %s (pk1 int, pk2 int, ck1 int, ck2 int, data1 text, data2 text, PRIMARY KEY((pk1, pk2), ck1, ck2))");
 
-        Assertions.assertThrows(InvalidQueryException.class, () -> prepare("SELECT * FROM %s WHERE pk1 = 1"));
-        Assertions.assertThrows(InvalidQueryException.class, () -> prepare("SELECT * FROM %s WHERE pk2 = 1"));
+        Assertions.assertThatThrownBy(() -> prepare("SELECT * FROM %s WHERE pk1 = 1")).isInstanceOf(InvalidQueryException.class);
+        Assertions.assertThatThrownBy(() -> prepare("SELECT * FROM %s WHERE pk2 = 1")).isInstanceOf(InvalidQueryException.class);
 
-        Assertions.assertThrows(InvalidQueryException.class, () -> prepare("SELECT * FROM %s WHERE ck1 = 1 ALLOW FILTERING"));
-        Assertions.assertThrows(InvalidQueryException.class, () -> prepare("SELECT * FROM %s WHERE ck2 = 1 ALLOW FILTERING"));
-        Assertions.assertThrows(InvalidQueryException.class, () -> prepare("SELECT * FROM %s WHERE ck1 = 1 AND ck2 = 1 ALLOW FILTERING"));
+        Assertions.assertThatThrownBy(() -> prepare("SELECT * FROM %s WHERE ck1 = 1 ALLOW FILTERING")).isInstanceOf(InvalidQueryException.class);
+        Assertions.assertThatThrownBy(() -> prepare("SELECT * FROM %s WHERE ck2 = 1 ALLOW FILTERING")).isInstanceOf(InvalidQueryException.class);
+        Assertions.assertThatThrownBy(() -> prepare("SELECT * FROM %s WHERE ck1 = 1 AND ck2 = 1 ALLOW FILTERING")).isInstanceOf(InvalidQueryException.class);
 
-        Assertions.assertThrows(InvalidQueryException.class, () -> prepare("SELECT * FROM %s WHERE data1 = 'val' ALLOW FILTERING"));
-        Assertions.assertThrows(InvalidQueryException.class, () -> prepare("SELECT * FROM %s WHERE data1 = 'val' AND data2 = 'val' ALLOW FILTERING"));
+        Assertions.assertThatThrownBy(() -> prepare("SELECT * FROM %s WHERE data1 = 'val' ALLOW FILTERING")).isInstanceOf(InvalidQueryException.class);
+        Assertions.assertThatThrownBy(() -> prepare("SELECT * FROM %s WHERE data1 = 'val' AND data2 = 'val' ALLOW FILTERING")).isInstanceOf(InvalidQueryException.class);
 
-        Assertions.assertThrows(InvalidQueryException.class, () -> prepare("SELECT * FROM %s WHERE pk1 = 1 AND ck1 = 1 ALLOW FILTERING"));
-        Assertions.assertThrows(InvalidQueryException.class, () -> prepare("SELECT * FROM %s WHERE pk2 = 1 AND ck1 = 1 ALLOW FILTERING"));
-        Assertions.assertThrows(InvalidQueryException.class, () -> prepare("SELECT * FROM %s WHERE pk1 = 1 AND ck2 = 1 ALLOW FILTERING"));
-        Assertions.assertThrows(InvalidQueryException.class, () -> prepare("SELECT * FROM %s WHERE pk1 = 1 AND data1 = 'val' ALLOW FILTERING"));
+        Assertions.assertThatThrownBy(() -> prepare("SELECT * FROM %s WHERE pk1 = 1 AND ck1 = 1 ALLOW FILTERING")).isInstanceOf(InvalidQueryException.class);
+        Assertions.assertThatThrownBy(() -> prepare("SELECT * FROM %s WHERE pk2 = 1 AND ck1 = 1 ALLOW FILTERING")).isInstanceOf(InvalidQueryException.class);
+        Assertions.assertThatThrownBy(() -> prepare("SELECT * FROM %s WHERE pk1 = 1 AND ck2 = 1 ALLOW FILTERING")).isInstanceOf(InvalidQueryException.class);
+        Assertions.assertThatThrownBy(() -> prepare("SELECT * FROM %s WHERE pk1 = 1 AND data1 = 'val' ALLOW FILTERING")).isInstanceOf(InvalidQueryException.class);
 
-        Assertions.assertThrows(InvalidQueryException.class, () -> prepare("SELECT * FROM %s WHERE pk1 = 1 AND pk2 = 1 AND ck2 = 1 ALLOW FILTERING"));
+        Assertions.assertThatThrownBy(() -> prepare("SELECT * FROM %s WHERE pk1 = 1 AND pk2 = 1 AND ck2 = 1 ALLOW FILTERING")).isInstanceOf(InvalidQueryException.class);
 
-        Assertions.assertThrows(InvalidQueryException.class, () -> prepare("SELECT * FROM %s WHERE pk1 = 1 AND pk2 = 1 AND data1 = 'val'"));
+        Assertions.assertThatThrownBy(() -> prepare("SELECT * FROM %s WHERE pk1 = 1 AND pk2 = 1 AND data1 = 'val'")).isInstanceOf(InvalidQueryException.class);
 
-        Assertions.assertThrows(InvalidQueryException.class, () -> prepare("SELECT * FROM %s WHERE pk1 IN (1, 2)"));
-        Assertions.assertThrows(InvalidQueryException.class, () -> prepare("SELECT * FROM %s WHERE pk2 IN (1, 2)"));
-        Assertions.assertThrows(InvalidQueryException.class, () -> prepare("SELECT * FROM %s WHERE ck1 IN (1, 2) ALLOW FILTERING"));
+        Assertions.assertThatThrownBy(() -> prepare("SELECT * FROM %s WHERE pk1 IN (1, 2)")).isInstanceOf(InvalidQueryException.class);
+        Assertions.assertThatThrownBy(() -> prepare("SELECT * FROM %s WHERE pk2 IN (1, 2)")).isInstanceOf(InvalidQueryException.class);
+        Assertions.assertThatThrownBy(() -> prepare("SELECT * FROM %s WHERE ck1 IN (1, 2) ALLOW FILTERING")).isInstanceOf(InvalidQueryException.class);
 
-        Assertions.assertThrows(InvalidQueryException.class, () -> prepare("SELECT * FROM %s WHERE ck1 > 10 ALLOW FILTERING"));
-        Assertions.assertThrows(InvalidQueryException.class, () -> prepare("SELECT * FROM %s WHERE pk1 = 1 AND ck1 > 10 ALLOW FILTERING"));
+        Assertions.assertThatThrownBy(() -> prepare("SELECT * FROM %s WHERE ck1 > 10 ALLOW FILTERING")).isInstanceOf(InvalidQueryException.class);
+        Assertions.assertThatThrownBy(() -> prepare("SELECT * FROM %s WHERE pk1 = 1 AND ck1 > 10 ALLOW FILTERING")).isInstanceOf(InvalidQueryException.class);
 
-        Assertions.assertThrows(InvalidQueryException.class, () -> prepare("SELECT * FROM %s WHERE data1 LIKE 'prefix%%' ALLOW FILTERING"));
-        Assertions.assertThrows(InvalidQueryException.class, () -> prepare("SELECT * FROM %s WHERE ck1 LIKE 'abc%%' ALLOW FILTERING"));
+        Assertions.assertThatThrownBy(() -> prepare("SELECT * FROM %s WHERE data1 LIKE 'prefix%%' ALLOW FILTERING")).isInstanceOf(InvalidQueryException.class);
+        Assertions.assertThatThrownBy(() -> prepare("SELECT * FROM %s WHERE ck1 LIKE 'abc%%' ALLOW FILTERING")).isInstanceOf(InvalidQueryException.class);
 
-        Assertions.assertThrows(InvalidQueryException.class, () -> prepare("UPDATE %s SET data1 = 'new' WHERE pk1 = 1 AND ck1 = 1 AND ck2 = 1"));
-        Assertions.assertThrows(InvalidQueryException.class, () -> prepare("UPDATE %s SET data1 = 'new' WHERE pk1 = 1 AND pk2 = 1 AND ck2 = 1"));
+        Assertions.assertThatThrownBy(() -> prepare("UPDATE %s SET data1 = 'new' WHERE pk1 = 1 AND ck1 = 1 AND ck2 = 1")).isInstanceOf(InvalidQueryException.class);
+        Assertions.assertThatThrownBy(() -> prepare("UPDATE %s SET data1 = 'new' WHERE pk1 = 1 AND pk2 = 1 AND ck2 = 1")).isInstanceOf(InvalidQueryException.class);
         assertNotWarns();
     }
 
