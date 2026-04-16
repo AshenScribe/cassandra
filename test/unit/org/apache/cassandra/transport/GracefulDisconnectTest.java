@@ -51,15 +51,15 @@ public class GracefulDisconnectTest extends CQLTester
         DatabaseDescriptor.setGracefulDisconnectEnabled(true);
         SimpleClient.Builder builder = SimpleClient.builder(nativeAddr.getHostAddress(), nativePort).protocolVersion(ProtocolVersion.V5);
 
-        try (SimpleClient client = builder.build()) 
+        try (SimpleClient client = builder.build())
         {
             client.establishConnection();
-            
+
             OptionsMessage message = new OptionsMessage();
             Response response = client.execute(message);
 
             if (!(response instanceof SupportedMessage)) Assertions.fail("Expected an SUPPORTED in response to a OPTIONS, got: " + response);
-            
+
             SupportedMessage supportedMessage = (SupportedMessage) response;
             if (!supportedMessage.supported.containsKey(StartupMessage.GRACEFUL_DISCONNECT)) Assertions.fail("GRACEFUL_DISCONNECT event not received");
             if (!Boolean.parseBoolean(supportedMessage.supported.get(StartupMessage.GRACEFUL_DISCONNECT).get(0))) Assertions.fail("GRACEFUL_DISCONNECT value is false, expected true");
@@ -73,15 +73,15 @@ public class GracefulDisconnectTest extends CQLTester
         DatabaseDescriptor.setGracefulDisconnectEnabled(false);
         SimpleClient.Builder builder = SimpleClient.builder(nativeAddr.getHostAddress(), nativePort).protocolVersion(ProtocolVersion.V5);
 
-        try (SimpleClient client = builder.build()) 
+        try (SimpleClient client = builder.build())
         {
             client.establishConnection();
-            
+
             OptionsMessage message = new OptionsMessage();
             Response response = client.execute(message);
 
             if (!(response instanceof SupportedMessage)) Assertions.fail("Expected an SUPPORTED in response to a OPTIONS, got: " + response);
-            
+
             SupportedMessage supportedMessage = (SupportedMessage) response;
             if (!supportedMessage.supported.containsKey(StartupMessage.GRACEFUL_DISCONNECT)) Assertions.fail("GRACEFUL_DISCONNECT event not received");
             if (Boolean.parseBoolean(supportedMessage.supported.get(StartupMessage.GRACEFUL_DISCONNECT).get(0))) Assertions.fail("GRACEFUL_DISCONNECT value is true, expected false");
