@@ -1088,16 +1088,13 @@ native_transport_allow_older_protocols: true
 # This applies to intentional shutdowns (nodetool drain, rolling restarts,
 # controlled JVM shutdown). Clients must subscribe to the GRACEFUL_DISCONNECT
 # event via REGISTER to benefit from this behavior.
-#
 # Requires driver support for the GRACEFUL_DISCONNECT event type.
-# See: https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=406619103
-
-# Enable or disable graceful disconnect. When false, shutdown behavior is
-# unchanged from previous versions.
+# See: doc/modules/cassandra/pages/managing/operating/graceful_disconnect.adoc
+# Defaults to false.
 # graceful_disconnect_enabled: false
 
 # Time given to clients to stop sending new requests after the GRACEFUL_DISCONNECT event is emitted.
-# graceful_disconnect_grace_period: 30000
+# graceful_disconnect_grace_period: 5000
 
 # The address or interface to bind the native transport server to.
 #

@@ -21,10 +21,10 @@ package org.apache.cassandra.service;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.jupiter.api.Assertions;
 
 import org.apache.cassandra.ServerTestUtils;
 import org.apache.cassandra.concurrent.ScheduledExecutors;
@@ -210,15 +210,15 @@ public class StorageServiceTest extends TestBaseImpl
         try
         {
             storageService.setGracefulDisconnectGracePeriod(3000);
-            Assertions.assertEquals(3000, storageService.getGracefulDisconnectGracePeriod());
+            Assertions.assertThat(3000).isEqualTo(storageService.getGracefulDisconnectGracePeriod());
 
             try
             {
-                Assertions.assertThrows(IllegalArgumentException.class, () -> storageService.setGracefulDisconnectGracePeriod(-1));
+                Assertions.assertThatThrownBy(() -> storageService.setGracefulDisconnectGracePeriod(-1)).isInstanceOf(IllegalArgumentException.class);
             }
             catch (IllegalArgumentException ignored) {}
 
-            Assertions.assertEquals(3000, storageService.getGracefulDisconnectGracePeriod());
+            Assertions.assertThat(3000).isEqualTo(storageService.getGracefulDisconnectGracePeriod());
         }
         finally
         {
@@ -229,8 +229,7 @@ public class StorageServiceTest extends TestBaseImpl
     @Test
     public void testGracefulDisconnectEnabled()
     {
-        Assertions.assertFalse(StorageService.instance.getGracefulDisconnectEnabled(),
-                               "Default value of graceful_disconnect_enabled must be false");
+        Assertions.assertThat(StorageService.instance.getGracefulDisconnectEnabled()).isFalse();
     }
 
     @Test
