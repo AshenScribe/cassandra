@@ -2569,10 +2569,12 @@ drop_compact_storage_enabled: false
 # Guardrail to warn or fail when a statement is prepared without bind markers (parameters).
 # This prevents the Prepared Statement Cache from being flooded with unique entries caused
 # by hardcoded literals.
-# When true, warns on the usage of misprepared statements
-# When false, misprepared statements will result in an error
-prepared_statements_require_parameters_warn: true
-prepared_statements_require_parameters_fail: false
+#
+# prepared_statements_require_parameters_warn: When true, logs a warning on the usage of misprepared statements.
+# prepared_statements_require_parameters_fail: When true, rejects misprepared statements with an error.
+#
+# prepared_statements_require_parameters_warn: true
+# prepared_statements_require_parameters_fail: false
 
 #role_name_policy:
 #  # Implementation class of a validator. When not in form of FQCN, the

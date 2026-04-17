@@ -60,6 +60,7 @@ import org.apache.cassandra.db.ReadCommand.PotentialTxnConflicts;
 import org.apache.cassandra.db.RegularAndStaticColumns;
 import org.apache.cassandra.db.Slice;
 import org.apache.cassandra.db.Slices;
+import org.apache.cassandra.db.guardrails.GuardrailViolatedException;
 import org.apache.cassandra.db.guardrails.Guardrails;
 import org.apache.cassandra.db.partitions.PartitionUpdate;
 import org.apache.cassandra.db.rows.RowIterator;
@@ -339,8 +340,18 @@ public class BatchStatement implements CQLStatement.CompositeCQLStatement
     @Override
     public void validatePrepare(ClientState state)
     {
-        for (ModificationStatement statement: statements)
-            statement.validatePrepare(state);
+        for (ModificationStatement statement : statements)
+        {
+            try
+            {
+                statement.validatePrepare(state);
+            }
+            // if one of the statement is misprepared and we must fail, stop the loop
+            catch (GuardrailViolatedException e)
+            {
+                break;
+            }
+        }
     }
 
     @Override

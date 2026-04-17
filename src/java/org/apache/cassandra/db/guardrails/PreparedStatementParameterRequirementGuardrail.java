@@ -18,84 +18,50 @@
 
 package org.apache.cassandra.db.guardrails;
 
-import java.util.function.Predicate;
-
 import javax.annotation.Nullable;
 
 import org.apache.cassandra.cql3.CQLStatement;
 import org.apache.cassandra.cql3.restrictions.StatementRestrictions;
 import org.apache.cassandra.service.ClientState;
-import org.apache.cassandra.utils.TriPredicate;
 
 public class PreparedStatementParameterRequirementGuardrail extends Guardrail
 {
-    private final TriPredicate<ClientState, CQLStatement, StatementRestrictions> warnPredicate;
-    private final TriPredicate<ClientState, CQLStatement, StatementRestrictions> failurePredicate;
-
     public static final String MISPREPARED_STATEMENT_WARN_MESSAGE = "This query contains only literal values and no bind markers. " + "Using one or more '?' placeholder values (bind markers) allows a prepared statement to be reused.";
 
     PreparedStatementParameterRequirementGuardrail()
     {
         super("prepared_statements_require_parameters", null);
-        this.warnPredicate = new WarnEvaluationFunction();
-        this.failurePredicate = new FailEvaluationFunction();
     }
 
-    public void guard(CQLStatement statement, StatementRestrictions restrictions, @Nullable ClientState state)
+
+    public void guard(CQLStatement statement, StatementRestrictions restrictions, @Nullable ClientState state, String tableName, String keyspace)
     {
+        if (restrictions == null || !statement.eligibleAsPreparedStatement())
+            return;
+
         if (!enabled(state))
             return;
 
-        if (failurePredicate.test(state, statement, restrictions))
-            fail("fail", state);
-        else if (warnPredicate.test(state, statement, restrictions))
-            warn(MISPREPARED_STATEMENT_WARN_MESSAGE);
-    }
+        GuardrailsConfig config = Guardrails.CONFIG_PROVIDER.getOrCreate(state);
 
-    public static final class FailEvaluationFunction extends EvaluationFunction
-    {
-        public FailEvaluationFunction()
-        {
-            super(state -> Guardrails.CONFIG_PROVIDER.getOrCreate(state).getPreparedStatementsRequireParametersFail());
-        }
-    }
+        boolean failOn = config.getPreparedStatementsRequireParametersFail();
+        boolean warnOn = config.getPreparedStatementsRequireParametersWarn();
 
-    public static final class WarnEvaluationFunction extends EvaluationFunction
-    {
-        public WarnEvaluationFunction()
-        {
-            super(state -> Guardrails.CONFIG_PROVIDER.getOrCreate(state).getPreparedStatementsRequireParametersWarn());
-        }
-    }
+        if (!failOn && !warnOn)
+            return;
 
-    public static abstract class EvaluationFunction implements TriPredicate<ClientState, CQLStatement, StatementRestrictions>
-    {
-        private final Predicate<ClientState> enablementPredicate;
+        if (!restrictions.hasPartitionKeyRestrictions()
+            && !restrictions.hasClusteringColumnsRestrictions()
+            && !restrictions.hasNonPrimaryKeyRestrictions())
+            return;
 
-        public EvaluationFunction(Predicate<ClientState> enablementPredicate)
-        {
-            this.enablementPredicate = enablementPredicate;
-        }
+        if (!statement.getBindVariables().isEmpty())
+            return;
 
-        @Override
-        public boolean test(ClientState state, CQLStatement cqlStatement, StatementRestrictions restrictions)
-        {
-            // fail as fast as possible
-            if (restrictions == null || !cqlStatement.eligibleAsPreparedStatement())
-                return false;
-
-            if (!enablementPredicate.test(state))
-                return false;
-
-            boolean hasRestrictions = restrictions.hasPartitionKeyRestrictions()
-                                      || restrictions.hasClusteringColumnsRestrictions()
-                                      || restrictions.hasNonPrimaryKeyRestrictions();
-
-            if (!hasRestrictions)
-                return false;
-
-            return cqlStatement.getBindVariables().isEmpty();
-        }
+        if (failOn)
+            fail("fail" + "\nTable: " + tableName + "\nKeyspace:" + keyspace, state);
+        else
+            warn(MISPREPARED_STATEMENT_WARN_MESSAGE + "\nTable: " + tableName + "\nKeyspace:" + keyspace);
     }
 }
 

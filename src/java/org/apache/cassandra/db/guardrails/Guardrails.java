@@ -58,7 +58,6 @@ public final class Guardrails implements GuardrailsMBean
     public static final String MBEAN_NAME = "org.apache.cassandra.db:type=Guardrails";
 
     public static final GuardrailsConfigProvider CONFIG_PROVIDER = GuardrailsConfigProvider.instance;
-
     private static final GuardrailsOptions DEFAULT_CONFIG = DatabaseDescriptor.getGuardrailsConfig();
 
     @VisibleForTesting
