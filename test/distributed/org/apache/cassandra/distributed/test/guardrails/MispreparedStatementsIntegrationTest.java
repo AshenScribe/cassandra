@@ -100,6 +100,8 @@ public class MispreparedStatementsIntegrationTest extends GuardrailTester
         assertPreparedStatementsRequireParametersGuardrailViolated(() -> prepare("select * from %s where data1 like 'prefix%%' allow filtering"));
 
        Assertions.assertThatCode(() -> execute("select * from %s where pk2 = 1 AND pk1 = 1")).doesNotThrowAnyException();
+       Assertions.assertThatCode(() -> prepare("select * from %s where pk2 = 1 AND pk1 = 1 AND data1 = ? allow filtering")).doesNotThrowAnyException();
+       Assertions.assertThatCode(() -> prepare("select * from %s where pk2 = ? AND pk1 = 1 AND data1 = 'a' allow filtering")).doesNotThrowAnyException();
     }
 
     private void assertPreparedStatementsRequireParametersGuardrailViolated(ThrowableAssert.ThrowingCallable throwable)

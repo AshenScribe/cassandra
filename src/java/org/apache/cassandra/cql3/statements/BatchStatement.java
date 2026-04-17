@@ -214,13 +214,13 @@ public class BatchStatement implements CQLStatement.CompositeCQLStatement
     public short[] getPartitionKeyBindVariableIndexes()
     {
         boolean affectsMultipleTables =
-        !statements.isEmpty() && !statements.stream().map(s -> s.metadata().id).allMatch(isEqual(statements.get(0).metadata().id));
+            !statements.isEmpty() && !statements.stream().map(s -> s.metadata().id).allMatch(isEqual(statements.get(0).metadata().id));
 
         // Use the TableMetadata of the first statement for partition key bind indexes.  If the statements affect
         // multiple tables, we won't send partition key bind indexes.
         return (affectsMultipleTables || statements.isEmpty())
-               ? null
-               : bindVariables.getPartitionKeyBindVariableIndexes(statements.get(0).metadata());
+             ? null
+             : bindVariables.getPartitionKeyBindVariableIndexes(statements.get(0).metadata());
     }
 
     @Override
@@ -405,7 +405,7 @@ public class BatchStatement implements CQLStatement.CompositeCQLStatement
             String suffix = tablesWithZeroGcGs.size() == 1 ? "" : "s";
             NoSpamLogger.log(logger, NoSpamLogger.Level.WARN, 1, TimeUnit.MINUTES, LOGGED_BATCH_LOW_GCGS_WARNING,
                              suffix, tablesWithZeroGcGs);
-            ClientWarn.instance.warn(MessageFormatter.arrayFormat(LOGGED_BATCH_LOW_GCGS_WARNING, new Object[]{ suffix, tablesWithZeroGcGs })
+            ClientWarn.instance.warn(MessageFormatter.arrayFormat(LOGGED_BATCH_LOW_GCGS_WARNING, new Object[] { suffix, tablesWithZeroGcGs })
                                                      .getMessage());
         }
         // local is either executeWithoutConditions modifying a virtual table (doesn't support txns) or executeLocal
@@ -452,7 +452,7 @@ public class BatchStatement implements CQLStatement.CompositeCQLStatement
                 logger.warn(format, tableNames, FBUtilities.prettyPrintMemory(size), FBUtilities.prettyPrintMemory(warnThreshold),
                             FBUtilities.prettyPrintMemory(size - warnThreshold), "");
             }
-            ClientWarn.instance.warn(MessageFormatter.arrayFormat(format, new Object[]{ tableNames, size, warnThreshold, size - warnThreshold, "" }).getMessage());
+            ClientWarn.instance.warn(MessageFormatter.arrayFormat(format, new Object[] {tableNames, size, warnThreshold, size - warnThreshold, ""}).getMessage());
         }
     }
 
@@ -480,8 +480,8 @@ public class BatchStatement implements CQLStatement.CompositeCQLStatement
                 NoSpamLogger.log(logger, NoSpamLogger.Level.WARN, 1, TimeUnit.MINUTES, UNLOGGED_BATCH_WARNING,
                                  keySet.size(), tableNames.size() == 1 ? "" : "s", tableNames);
 
-                ClientWarn.instance.warn(MessageFormatter.arrayFormat(UNLOGGED_BATCH_WARNING, new Object[]{ keySet.size(),
-                                                                                                            tableNames.size() == 1 ? "" : "s", tableNames }).getMessage());
+                ClientWarn.instance.warn(MessageFormatter.arrayFormat(UNLOGGED_BATCH_WARNING, new Object[]{keySet.size(),
+                                                    tableNames.size() == 1 ? "" : "s", tableNames}).getMessage());
             }
         }
     }
@@ -509,7 +509,7 @@ public class BatchStatement implements CQLStatement.CompositeCQLStatement
                                                                options.getSerialConsistency()),
                                                     clientState);
 
-        for (int i = 0; i < statements.size(); i++)
+        for (int i = 0; i < statements.size(); i++ )
             statements.get(i).validateDiskUsage(options.forStatement(i), clientState);
 
         if (hasConditions)
@@ -557,16 +557,11 @@ public class BatchStatement implements CQLStatement.CompositeCQLStatement
 
     private void updatePartitionsPerBatchMetrics(int updatedPartitions)
     {
-        if (isLogged())
-        {
+        if (isLogged()) {
             metrics.partitionsPerLoggedBatch.update(updatedPartitions);
-        }
-        else if (isCounter())
-        {
+        } else if (isCounter()) {
             metrics.partitionsPerCounterBatch.update(updatedPartitions);
-        }
-        else
-        {
+        } else {
             metrics.partitionsPerUnloggedBatch.update(updatedPartitions);
         }
     }
@@ -600,7 +595,7 @@ public class BatchStatement implements CQLStatement.CompositeCQLStatement
         }
     }
 
-    private Pair<CQL3CasRequest, Set<ColumnMetadata>> makeCasRequest(BatchQueryOptions options, QueryState state, Dispatcher.RequestTime requestTime)
+    private Pair<CQL3CasRequest,Set<ColumnMetadata>> makeCasRequest(BatchQueryOptions options, QueryState state, Dispatcher.RequestTime requestTime)
     {
         long batchTimestamp = options.getTimestamp(state);
         long nowInSeconds = options.getNowInSeconds(state);
@@ -628,7 +623,7 @@ public class BatchStatement implements CQLStatement.CompositeCQLStatement
 
             checkFalse(statement.getRestrictions().clusteringKeyRestrictionsHasIN(),
                        "IN on the clustering key columns is not supported with conditional %s",
-                       statement.type.isUpdate() ? "updates" : "deletions");
+                       statement.type.isUpdate()? "updates" : "deletions");
 
             if (statement.hasSlices())
             {
@@ -644,6 +639,7 @@ public class BatchStatement implements CQLStatement.CompositeCQLStatement
                 {
                     casRequest.addRangeDeletion(slice, statement, statementOptions, timestamp, nowInSeconds);
                 }
+
             }
             else
             {
@@ -705,13 +701,13 @@ public class BatchStatement implements CQLStatement.CompositeCQLStatement
         try (RowIterator result = ModificationStatement.casInternal(state.getClientState(), request, timestamp, nowInSeconds))
         {
             ResultSet resultSet =
-            ModificationStatement.buildCasResultSet(ksName,
-                                                    tableName,
-                                                    result,
-                                                    columnsWithConditions,
-                                                    true,
-                                                    state,
-                                                    options.forStatement(0));
+                ModificationStatement.buildCasResultSet(ksName,
+                                                        tableName,
+                                                        result,
+                                                        columnsWithConditions,
+                                                        true,
+                                                        state,
+                                                        options.forStatement(0));
             return new ResultMessage.Rows(resultSet);
         }
     }

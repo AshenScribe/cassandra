@@ -41,12 +41,10 @@ public class PreparedStatementParameterRequirementGuardrail extends Guardrail
         if (!enabled(state))
             return;
 
-        GuardrailsConfig config = Guardrails.CONFIG_PROVIDER.getOrCreate(state);
+        final GuardrailsConfig config = Guardrails.CONFIG_PROVIDER.getOrCreate(state);
 
-        boolean failOn = config.getPreparedStatementsRequireParametersFail();
-        boolean warnOn = config.getPreparedStatementsRequireParametersWarn();
-
-        if (!failOn && !warnOn)
+        boolean failOn =  config.getPreparedStatementsRequireParametersFail();
+        if (!failOn && !config.getPreparedStatementsRequireParametersWarn())
             return;
 
         if (!restrictions.hasPartitionKeyRestrictions()
