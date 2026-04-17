@@ -26,13 +26,12 @@ import org.apache.cassandra.service.ClientState;
 
 public class PreparedStatementParameterRequirementGuardrail extends Guardrail
 {
-    public static final String MISPREPARED_STATEMENT_WARN_MESSAGE = "This query contains only literal values and no bind markers. " + "Using one or more '?' placeholder values (bind markers) allows a prepared statement to be reused.";
+    private static final String MISPREPARED_STATEMENT_MESSAGE = "This query contains only literal values and no bind markers. " + "Using one or more '?' placeholder values (bind markers) allows a prepared statement to be reused.";
 
     PreparedStatementParameterRequirementGuardrail()
     {
         super("prepared_statements_require_parameters", null);
     }
-
 
     public void guard(CQLStatement statement, StatementRestrictions restrictions, @Nullable ClientState state, String tableName, String keyspace)
     {
@@ -58,10 +57,12 @@ public class PreparedStatementParameterRequirementGuardrail extends Guardrail
         if (!statement.getBindVariables().isEmpty())
             return;
 
+        final String message = MISPREPARED_STATEMENT_MESSAGE + " Keyspace: " + keyspace + " Table: " + tableName;
+
         if (failOn)
-            fail("fail" + "\nTable: " + tableName + "\nKeyspace:" + keyspace, state);
+            fail(message, state);
         else
-            warn(MISPREPARED_STATEMENT_WARN_MESSAGE + "\nTable: " + tableName + "\nKeyspace:" + keyspace);
+            warn(message);
     }
 }
 
