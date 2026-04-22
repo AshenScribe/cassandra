@@ -1219,25 +1219,25 @@ public interface GuardrailsMBean
      * @return {@code true} if a warning is logged when a prepared statement is created without parameters,
      * {@code false} otherwise.
      */
-    boolean getPreparedStatementsRequireParametersWarn();
+    boolean getPreparedStatementsRequireParametersWarned();
 
     /**
      * @return {@code true} if creating a prepared statement without parameters is rejected,
      * {@code false} otherwise.
      */
-    boolean getPreparedStatementsRequireParametersFail();
+    boolean getPreparedStatementsRequireParametersEnabled();
 
     /**
      * Sets whether to log a warning when a prepared statement is created without parameters.
      *
-     * @param enabled {@code true} to enable the warning, {@code false} to disable it.
+     * @param warned {@code true} to enable the warning, {@code false} to disable it.
      */
-    void setPreparedStatementsRequireParametersWarn(boolean enabled);
+    void setPreparedStatementsRequireParametersWarned(boolean warned);
 
     /**
      * Sets whether to reject creating a prepared statement without parameters.
      *
      * @param enabled {@code true} to reject, {@code false} to allow.
      */
-    void setPreparedStatementsRequireParametersFail(boolean enabled);
+    void setPreparedStatementsRequireParametersEnabled(boolean enabled);
 }

@@ -627,10 +627,6 @@ public final class Guardrails implements GuardrailsMBean
                      format("The keyspace %s has a replication factor of %s, above the %s threshold of %s.",
                             what, value, isWarning ? "warning" : "failure", threshold));
 
-
-    public static final PreparedStatementParameterRequirementGuardrail preparedStatementsRequireParameters =
-    new PreparedStatementParameterRequirementGuardrail();
-
     public static final MaxThreshold maximumAllowableTimestamp =
     new MaxThreshold("maximum_timestamp",
                      "Timestamps too far in the future can lead to data that can't be easily overwritten",
@@ -712,6 +708,9 @@ public final class Guardrails implements GuardrailsMBean
                    state -> CONFIG_PROVIDER.getOrCreate(state).getUnsetTrainingMinFrequencyWarned(),
                    state -> CONFIG_PROVIDER.getOrCreate(state).getUnsetTrainingMinFrequencyEnabled(),
                    "unset minimum frequency of training for dictionary compressor");
+
+    public static final PreparedStatementParameterRequirementGuardrail preparedStatementsRequireParameters =
+    new PreparedStatementParameterRequirementGuardrail();
 
     private Guardrails()
     {
@@ -1926,27 +1925,27 @@ public final class Guardrails implements GuardrailsMBean
     }
 
     @Override
-    public boolean getPreparedStatementsRequireParametersWarn()
+    public boolean getPreparedStatementsRequireParametersWarned()
     {
-        return DEFAULT_CONFIG.getPreparedStatementsRequireParametersWarn();
+        return DEFAULT_CONFIG.getPreparedStatementsRequireParametersWarned();
     }
 
     @Override
-    public boolean getPreparedStatementsRequireParametersFail()
+    public boolean getPreparedStatementsRequireParametersEnabled()
     {
-        return DEFAULT_CONFIG.getPreparedStatementsRequireParametersFail();
+        return DEFAULT_CONFIG.getPreparedStatementsRequireParametersEnabled();
     }
 
     @Override
-    public void setPreparedStatementsRequireParametersWarn(boolean enabled)
+    public void setPreparedStatementsRequireParametersWarned(boolean warned)
     {
-        DEFAULT_CONFIG.setPreparedStatementsRequireParametersWarn(enabled);
+        DEFAULT_CONFIG.setPreparedStatementsRequireParametersWarned(warned);
     }
 
     @Override
-    public void setPreparedStatementsRequireParametersFail(boolean enabled)
+    public void setPreparedStatementsRequireParametersEnabled(boolean enabled)
     {
-        DEFAULT_CONFIG.setPreparedStatementsRequireParametersFail(enabled);
+        DEFAULT_CONFIG.setPreparedStatementsRequireParametersEnabled(enabled);
     }
 
     private static String toCSV(Set<String> values)

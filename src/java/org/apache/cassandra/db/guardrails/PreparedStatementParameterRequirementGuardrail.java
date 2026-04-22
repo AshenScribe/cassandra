@@ -38,7 +38,12 @@ public class PreparedStatementParameterRequirementGuardrail extends Guardrail
 
     public void guard(CQLStatement statement, StatementRestrictions restrictions, @Nullable ClientState state, String keyspace, String table)
     {
-        if (restrictions == null || !statement.eligibleAsPreparedStatement())
+        if (restrictions == null
+            || !statement.eligibleAsPreparedStatement()
+            || !statement.getBindVariables().isEmpty()
+            || (!restrictions.hasPartitionKeyRestrictions()
+                && !restrictions.hasClusteringColumnsRestrictions()
+                && !restrictions.hasNonPrimaryKeyRestrictions()))
             return;
 
         if (!enabled(state))
@@ -46,16 +51,8 @@ public class PreparedStatementParameterRequirementGuardrail extends Guardrail
 
         final GuardrailsConfig config = Guardrails.CONFIG_PROVIDER.getOrCreate(state);
 
-        boolean failOn =  config.getPreparedStatementsRequireParametersFail();
-        if (!failOn && !config.getPreparedStatementsRequireParametersWarn())
-            return;
-
-        if (!restrictions.hasPartitionKeyRestrictions()
-            && !restrictions.hasClusteringColumnsRestrictions()
-            && !restrictions.hasNonPrimaryKeyRestrictions())
-            return;
-
-        if (!statement.getBindVariables().isEmpty())
+        boolean failOn = config.getPreparedStatementsRequireParametersEnabled();
+        if (!failOn && !config.getPreparedStatementsRequireParametersWarned())
             return;
 
         final String message = MISPREPARED_STATEMENT_MESSAGE + " Query executed on keyspace '" + keyspace + "', table '" + table + "'.";

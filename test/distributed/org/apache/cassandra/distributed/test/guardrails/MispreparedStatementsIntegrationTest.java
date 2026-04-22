@@ -49,8 +49,8 @@ public class MispreparedStatementsIntegrationTest extends GuardrailTester
         cluster = init(Cluster.build(1)
                               .withConfig(c -> c.with(Feature.GOSSIP, Feature.NATIVE_PROTOCOL)
                                                 .set("authenticator", "PasswordAuthenticator")
-                                                .set("prepared_statements_require_parameters_warn", true)
-                                                .set("prepared_statements_require_parameters_fail", false))
+                                                .set("prepared_statements_require_parameters_warned", true)
+                                                .set("prepared_statements_require_parameters_enabled", false))
                               .start());
         driverCluster = buildDriverCluster(cluster);
         driverSession = driverCluster.connect();
@@ -81,8 +81,8 @@ public class MispreparedStatementsIntegrationTest extends GuardrailTester
         schemaChange("create table %s (pk1 int, pk2 int, ck1 int, ck2 int, data1 text, data2 text, primary key((pk1, pk2), ck1, ck2))");
 
         cluster.get(1).runOnInstance(() -> {
-            Guardrails.instance.setPreparedStatementsRequireParametersWarn(true);
-            Guardrails.instance.setPreparedStatementsRequireParametersFail(true);
+            Guardrails.instance.setPreparedStatementsRequireParametersWarned(true);
+            Guardrails.instance.setPreparedStatementsRequireParametersEnabled(true);
         });
         assertGuardrailViolated(() -> prepare("select * from %s where pk1 = 1 allow filtering"));
         assertGuardrailViolated(() -> prepare("select * from %s where pk2 = 1 AND pk1 = 1"));
@@ -116,16 +116,16 @@ public class MispreparedStatementsIntegrationTest extends GuardrailTester
         return driverSession;
     }
 
-    private void execute(String query, Object... args)
+    private void execute(String query)
     {
-        SimpleStatement stmt = new SimpleStatement(format(query), args);
+        SimpleStatement stmt = new SimpleStatement(format(query));
         stmt.setConsistencyLevel(com.datastax.driver.core.ConsistencyLevel.ALL);
         driverSession.execute(stmt);
     }
 
-    private void prepare(String query, Object... args)
+    private void prepare(String query)
     {
-        SimpleStatement stmt = new SimpleStatement(format(query), args);
+        SimpleStatement stmt = new SimpleStatement(format(query));
         stmt.setConsistencyLevel(com.datastax.driver.core.ConsistencyLevel.ALL);
         driverSession.prepare(stmt);
     }
