@@ -347,7 +347,7 @@ public class SelectStatement implements CQLStatement.SingleKeyspaceCqlStatement,
     @Override
     public void validatePrepare(ClientState state)
     {
-        Guardrails.preparedStatementsRequireParameters.guard(this, restrictions, state, table.getTableName(), table.keyspace);
+        Guardrails.preparedStatementsRequireParameters.guard(this, restrictions, state, table.keyspace, table.getTableName());
     }
 
     @Override

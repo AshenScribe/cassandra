@@ -20,20 +20,23 @@ package org.apache.cassandra.db.guardrails;
 
 import javax.annotation.Nullable;
 
+import com.google.common.annotations.VisibleForTesting;
+
 import org.apache.cassandra.cql3.CQLStatement;
 import org.apache.cassandra.cql3.restrictions.StatementRestrictions;
 import org.apache.cassandra.service.ClientState;
 
 public class PreparedStatementParameterRequirementGuardrail extends Guardrail
 {
-    private static final String MISPREPARED_STATEMENT_MESSAGE = "This query contains only literal values and no bind markers. " + "Using one or more '?' placeholder values (bind markers) allows a prepared statement to be reused.";
+    @VisibleForTesting
+    public static final String MISPREPARED_STATEMENT_MESSAGE = "The query contains only literal values and no bind markers. Using one or more '?' placeholder values (bind markers) allows a prepared statement to be reused.";
 
     PreparedStatementParameterRequirementGuardrail()
     {
         super("prepared_statements_require_parameters", null);
     }
 
-    public void guard(CQLStatement statement, StatementRestrictions restrictions, @Nullable ClientState state, String tableName, String keyspace)
+    public void guard(CQLStatement statement, StatementRestrictions restrictions, @Nullable ClientState state, String keyspace, String table)
     {
         if (restrictions == null || !statement.eligibleAsPreparedStatement())
             return;
@@ -55,7 +58,7 @@ public class PreparedStatementParameterRequirementGuardrail extends Guardrail
         if (!statement.getBindVariables().isEmpty())
             return;
 
-        final String message = MISPREPARED_STATEMENT_MESSAGE + " Keyspace: " + keyspace + " Table: " + tableName;
+        final String message = MISPREPARED_STATEMENT_MESSAGE + " Query executed on keyspace '" + keyspace + "', table '" + table + "'.";
 
         if (failOn)
             fail(message, state);

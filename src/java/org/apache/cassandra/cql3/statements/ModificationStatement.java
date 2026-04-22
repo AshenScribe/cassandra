@@ -417,7 +417,7 @@ public abstract class ModificationStatement implements CQLStatement.SingleKeyspa
     @Override
     public void validatePrepare(ClientState state)
     {
-        Guardrails.preparedStatementsRequireParameters.guard(this, restrictions, state, metadata.getTableName(), metadata.keyspace);
+        Guardrails.preparedStatementsRequireParameters.guard(this, restrictions, state, metadata.keyspace, metadata.getTableName());
     }
 
     public void validateDiskUsage(QueryOptions options, ClientState state)
