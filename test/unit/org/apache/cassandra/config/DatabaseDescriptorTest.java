@@ -795,9 +795,7 @@ public class DatabaseDescriptorTest
     public void testGracefulDisconnectEnabled()
     {
         Config config = new Config();
-        boolean originalValue = config.graceful_disconnect_enabled;
-        Assert.assertTrue("Default value of graceful_disconnect_enabled must be true", originalValue);
-    }
+        Assert.assertFalse("Default value of graceful_disconnect_enabled must be false", config.graceful_disconnect_enabled);
 
     @Test
     public void testGracefulDisconnectGracePeriod()
