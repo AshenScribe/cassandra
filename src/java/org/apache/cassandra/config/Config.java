@@ -167,6 +167,10 @@ public class Config
 
     public volatile DurationSpec.LongMillisecondsBound accord_preaccept_timeout = new DurationSpec.LongMillisecondsBound("1s");
 
+    public boolean graceful_disconnect_enabled = false;
+
+    public volatile DurationSpec.LongMillisecondsBound graceful_disconnect_grace_period = new DurationSpec.LongMillisecondsBound("5s");
+
     @Replaces(oldName = "truncate_request_timeout_in_ms", converter = Converters.MILLIS_DURATION_LONG, deprecated = true)
     public volatile DurationSpec.LongMillisecondsBound truncate_request_timeout = new DurationSpec.LongMillisecondsBound("60000ms");
 
