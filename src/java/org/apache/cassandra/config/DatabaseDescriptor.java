@@ -2649,11 +2649,6 @@ public class DatabaseDescriptor
         return conf.graceful_disconnect_enabled;
     }
 
-    public static void setGracefulDisconnectEnabled(boolean gracefulDisconnectEnabled)
-    {
-        conf.graceful_disconnect_enabled = gracefulDisconnectEnabled;
-    }
-
     public static long getReadRpcTimeout(TimeUnit unit)
     {
         return conf.read_request_timeout.to(unit);

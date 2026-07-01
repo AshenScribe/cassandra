@@ -24,21 +24,21 @@ Introduce an in-band signal — `GRACEFUL_DISCONNECT` — so that the server can
 
 == New Configurations Introduced
 
-`graceful_disconnect_enabled`:: A configuration that enables server to perform graceful disconnect.
-`graceful_disconnect_grace_period`:: A configuration that force shutdown any active driver connection to that certain node.
+`graceful_disconnect_enabled`:: A configuration that enables the server to perform graceful disconnect.
+`graceful_disconnect_grace_period`:: A configuration that forces shutdown of any active driver connection to the node after the grace period expires.
 
 [cols="1,1,3,1", options="header"]
 |===
 | Parameter | Type | Description | Default
 | `graceful_disconnect_enabled` | Boolean | A configuration that enables server to perform graceful disconnect. | false
-| `graceful_disconnect_grace_period_ms` | Duration (ms) | A configuration that determines after how much time to force close a socket connection, if there is any pending connection from driver side. | 5s
+| `graceful_disconnect_grace_period` | Duration (ms) | A configuration that determines after how much time to force close a socket connection, if there is any pending connection from driver side. | 5s
 |===
 
 == Client Compatibility & Upgrade Strategy
 
 === Legacy Drivers — No Change Required
 
-Drivers that do not support graceful disconnect are not affected by any value of `graceful_disconnect_enabled` or `graceful_disconnect_grace_period_ms`.
+Drivers that do not support graceful disconnect are not affected by any value of `graceful_disconnect_enabled` or `graceful_disconnect_grace_period`.
 
 === Required Driver Versions
 
@@ -71,7 +71,7 @@ No special coordination is needed. Drivers handle both peers transparently withi
 |===
 | Metric | Description
 | `connections_draining` | Current count of connections in the Draining state (subscribed and awaiting in-flight completion). Should rise at drain start and fall to zero before shutdown completes.
-| `forced_disconnects` | Cumulative count of connections force-closed after `grace_period_ms` expired without the driver closing cleanly. Persistent non-zero values here indicate driver-side issues or an undersized grace period.
+| `forced_disconnects` | Cumulative count of connections force-closed after `graceful_disconnect_grace_period` expired without the driver closing cleanly. Persistent non-zero values here indicate driver-side issues or an undersized grace period.
 |===
 
 == Failure Modes & Edge Cases

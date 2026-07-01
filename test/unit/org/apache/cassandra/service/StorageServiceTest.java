@@ -212,11 +212,7 @@ public class StorageServiceTest extends TestBaseImpl
             storageService.setGracefulDisconnectGracePeriod(3000);
             Assertions.assertThat(3000).isEqualTo(storageService.getGracefulDisconnectGracePeriod());
 
-            try
-            {
-                Assertions.assertThatThrownBy(() -> storageService.setGracefulDisconnectGracePeriod(-1)).isInstanceOf(IllegalArgumentException.class);
-            }
-            catch (IllegalArgumentException ignored) {}
+            Assertions.assertThatThrownBy(() -> storageService.setGracefulDisconnectGracePeriod(-1)).isInstanceOf(IllegalArgumentException.class);
 
             Assertions.assertThat(3000).isEqualTo(storageService.getGracefulDisconnectGracePeriod());
         }

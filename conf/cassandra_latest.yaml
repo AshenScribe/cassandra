@@ -1079,12 +1079,12 @@ native_transport_allow_older_protocols: true
 # event via REGISTER to benefit from this behavior.
 #
 # Requires driver support for the GRACEFUL_DISCONNECT event type.
-# See: doc/modules/cassandra/pages/managing/operating/graceful_disconnect.adoc
+# See: doc/modules/cassandra/pages/managing/operating/compaction/graceful_disconnect.adoc
 
 graceful_disconnect_enabled: true
 
 # Time given to clients to stop sending new requests after the GRACEFUL_DISCONNECT event is emitted.
-# graceful_disconnect_grace_period: 5000
+# graceful_disconnect_grace_period: 5s
 
 # The address or interface to bind the native transport server to.
 #
