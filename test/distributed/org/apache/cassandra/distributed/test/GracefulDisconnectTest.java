@@ -147,6 +147,10 @@ public class GracefulDisconnectTest
             try (SimpleClient client = SimpleClient.builder(nativeAddr.getHostString(), 9042).protocolVersion(ProtocolVersion.V4).build())
             {
                 client.connect(false);
+
+                assertThatThrownBy(() -> client.execute(new RegisterMessage(Collections.singletonList(Event.Type.GRACEFUL_DISCONNECT))))
+                .hasCauseInstanceOf(org.apache.cassandra.transport.ProtocolException.class);
+
                 int subscribedCount = cluster.get(1).callOnInstance(() ->
                                                                     CassandraDaemon.getInstanceForTesting()
                                                                                    .nativeTransportService()

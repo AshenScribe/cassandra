@@ -187,11 +187,6 @@ public final class ClientMetrics
         connectionsDraining.decrementAndGet();
     }
 
-    public void decrementConnectionsDraining(int drainingConnections)
-    {
-        connectionsDraining.addAndGet(-drainingConnections);
-    }
-
     public void markForcedDisconnect(int forceDisconnectedClients)
     {
         forcedDisconnects.mark(forceDisconnectedClients);
