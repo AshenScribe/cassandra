@@ -636,9 +636,12 @@ public class SimpleClient implements Closeable
     private void handleGracefulDisconnect()
     {
         draining.set(true);
-        if (lastWriteFuture != null)
-            lastWriteFuture.awaitUninterruptibly();
-        close();
+        ChannelFuture writeFuture = lastWriteFuture;
+        if (writeFuture != null)
+            writeFuture.addListener(f -> channel.close());
+        else
+            channel.close();
+        channel.closeFuture().addListener(f -> bootstrap.group().shutdownGracefully());
     }
 
 
