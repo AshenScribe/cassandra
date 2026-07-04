@@ -1079,7 +1079,7 @@ native_transport_allow_older_protocols: true
 # event via REGISTER to benefit from this behavior.
 #
 # Requires driver support for the GRACEFUL_DISCONNECT event type.
-# See: doc/modules/cassandra/pages/managing/operating/compaction/graceful_disconnect.adoc
+# See: doc/modules/cassandra/pages/managing/operating/graceful_disconnect.adoc
 
 graceful_disconnect_enabled: true
 
