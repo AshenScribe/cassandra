@@ -736,9 +736,11 @@ public class SimpleClient implements Closeable
 
                     if (event.type == Event.Type.GRACEFUL_DISCONNECT)
                     {
-                        client.draining.set(true);
-                        client.handleGracefulDisconnect();
                         logger.info("Received GRACEFUL_DISCONNECT. Entering draining mode.");
+                        if (eventHandler != null)
+                            eventHandler.onEvent(event);
+                        client.handleGracefulDisconnect();
+                        return;
                     }
 
                     if (eventHandler != null)
