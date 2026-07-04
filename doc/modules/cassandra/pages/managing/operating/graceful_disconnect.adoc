@@ -70,8 +70,8 @@ No special coordination is needed. Drivers handle both peers transparently withi
 [cols="1,3", options="header"]
 |===
 | Metric | Description
-| `connections_draining` | Current count of connections in the Draining state (subscribed and awaiting in-flight completion). Should rise at drain start and fall to zero before shutdown completes.
-| `forced_disconnects` | Cumulative count of connections force-closed after `graceful_disconnect_grace_period` expired without the driver closing cleanly. Persistent non-zero values here indicate driver-side issues or an undersized grace period.
+| `ConnectionsDraining` | Current count of connections in the Draining state (subscribed and awaiting in-flight completion). Should rise at drain start and fall to zero before shutdown completes.
+| `ForcedDisconnects` | Cumulative count of connections force-closed after `graceful_disconnect_grace_period` expired without the driver closing cleanly. Persistent non-zero values here indicate driver-side issues or an undersized grace period.
 |===
 
 == Failure Modes & Edge Cases
