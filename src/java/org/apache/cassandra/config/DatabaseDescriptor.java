@@ -2755,6 +2755,21 @@ public class DatabaseDescriptor
         return conf.repair_request_timeout.to(unit);
     }
 
+    public static long getGracefulDisconnectGracePeriod()
+    {
+        return conf.graceful_disconnect_grace_period.toMilliseconds();
+    }
+
+    public static void setGracefulDisconnectGracePeriod(long timeOutInMillis)
+    {
+        conf.graceful_disconnect_grace_period = new DurationSpec.LongMillisecondsBound(timeOutInMillis);
+    }
+
+    public static boolean getGracefulDisconnectEnabled()
+    {
+        return conf.graceful_disconnect_enabled;
+    }
+
     public static void setRepairRpcTimeout(Long timeOutInMillis)
     {
         conf.repair_request_timeout = new DurationSpec.LongMillisecondsBound(timeOutInMillis);

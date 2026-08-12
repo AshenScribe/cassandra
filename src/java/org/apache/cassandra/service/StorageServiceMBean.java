@@ -822,6 +822,11 @@ public interface StorageServiceMBean extends NotificationEmitter
     public void setTruncateRpcTimeout(long value);
     public long getTruncateRpcTimeout();
 
+    public void setGracefulDisconnectGracePeriod(long value);
+    public long getGracefulDisconnectGracePeriod();
+
+    public boolean getGracefulDisconnectEnabled();
+
     public void setStreamThroughputMbitPerSec(int value);
     /**
      * @return stream_throughput_outbound in megabits
