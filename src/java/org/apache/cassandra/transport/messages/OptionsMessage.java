@@ -74,6 +74,7 @@ public class OptionsMessage extends Message.Request
         supported.put(StartupMessage.CQL_VERSION, cqlVersions);
         supported.put(StartupMessage.COMPRESSION, compressions);
         supported.put(StartupMessage.PROTOCOL_VERSIONS, ProtocolVersion.supportedVersions());
+        supported.put(StartupMessage.GRACEFUL_DISCONNECT, List.of("true"));
 
         return new SupportedMessage(supported);
     }

@@ -99,6 +99,7 @@ public class SimpleClient implements Closeable
 {
 
     public static final int TIMEOUT_SECONDS = 10;
+    private final AtomicBoolean draining = new AtomicBoolean(false);
 
     static
     {
@@ -112,7 +113,7 @@ public class SimpleClient implements Closeable
     private final EncryptionOptions.ClientEncryptionOptions encryptionOptions;
     private final int largeMessageThreshold;
 
-    protected final ResponseHandler responseHandler = new ResponseHandler();
+    protected final ResponseHandler responseHandler = new ResponseHandler(this);
     protected final Connection.Tracker tracker = new ConnectionTracker();
     protected final ProtocolVersion version;
     // We don't track connection really, so we don't need one Connection per channel
@@ -238,9 +239,22 @@ public class SimpleClient implements Closeable
             options.put(StartupMessage.COMPRESSION, "LZ4");
             connection.setCompressor(Compressor.LZ4Compressor.instance);
         }
+        if (version.isGreaterOrEqualTo(ProtocolVersion.V5))
+            options.put(StartupMessage.GRACEFUL_DISCONNECT, "GRACEFUL_DISCONNECT");
         execute(new StartupMessage(options));
 
         return this;
+    }
+
+    private void handleGracefulDisconnect()
+    {
+        draining.set(true);
+        ChannelFuture writeFuture = lastWriteFuture;
+        if (writeFuture != null)
+            writeFuture.addListener(f -> channel.close());
+        else
+            channel.close();
+        channel.closeFuture().addListener(f -> bootstrap.group().shutdownGracefully());
     }
 
     public void setEventHandler(EventHandler eventHandler)
@@ -324,6 +338,10 @@ public class SimpleClient implements Closeable
 
     public Message.Response execute(Message.Request request, boolean throwOnErrorResponse)
     {
+        if (draining.get())
+        {
+            throw new RuntimeException("Connection is draining (GRACEFUL_DISCONNECT received)");
+        }
         try
         {
             request.attach(connection);
@@ -702,6 +720,12 @@ public class SimpleClient implements Closeable
     {
         public final BlockingQueue<Message.Response> responses = new SynchronousQueue<>(true);
         public EventHandler eventHandler;
+        private final SimpleClient client;
+
+        public ResponseHandler(SimpleClient client)
+        {
+            this.client = client;
+        }
 
         @Override
         public void channelRead0(ChannelHandlerContext ctx, Message.Response r)
@@ -719,8 +743,19 @@ public class SimpleClient implements Closeable
 
                 if (r instanceof EventMessage)
                 {
+                    Event event = ((EventMessage) r).event;
+
+                    if (event.type == Event.Type.GRACEFUL_DISCONNECT)
+                    {
+                        logger.info("Received GRACEFUL_DISCONNECT. Entering draining mode.");
+                        if (eventHandler != null)
+                            eventHandler.onEvent(event);
+                        client.handleGracefulDisconnect();
+                        return;
+                    }
+
                     if (eventHandler != null)
-                        eventHandler.onEvent(((EventMessage) r).event);
+                        eventHandler.onEvent(event);
                 }
                 else
                     responses.put(r);
