@@ -1299,6 +1299,26 @@ public class StorageService extends NotificationBroadcasterSupport implements IE
         return DatabaseDescriptor.getTruncateRpcTimeout(MILLISECONDS);
     }
 
+    @Override
+    public boolean getGracefulDisconnectEnabled()
+    {
+        return DatabaseDescriptor.getGracefulDisconnectEnabled();
+    }
+
+    @Override
+    public void setGracefulDisconnectGracePeriod(long value)
+    {
+        if (value <= 0 && DatabaseDescriptor.getGracefulDisconnectEnabled())
+            throw new IllegalArgumentException("Graceful disconnect grace period must be positive when graceful disconnect is enabled. Got " + value);
+        DatabaseDescriptor.setGracefulDisconnectGracePeriod(value);
+    }
+
+    @Override
+    public long getGracefulDisconnectGracePeriod()
+    {
+        return DatabaseDescriptor.getGracefulDisconnectGracePeriod();
+    }
+
     /** @deprecated See CASSANDRA-15234 */
     @Deprecated(since = "4.1")
     public void setStreamThroughputMbPerSec(int value)
