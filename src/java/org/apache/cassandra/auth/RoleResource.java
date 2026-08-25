@@ -46,12 +46,14 @@ public class RoleResource implements IResource, Comparable<RoleResource>
                                                                                         Permission.ALTER,
                                                                                         Permission.DROP,
                                                                                         Permission.AUTHORIZE,
-                                                                                        Permission.DESCRIBE);
+                                                                                        Permission.DESCRIBE,
+                                                                                        Permission.PROXY);
     // permissions which may be granted on role level resources
     private static final Set<Permission> ROLE_LEVEL_PERMISSIONS = Sets.immutableEnumSet(Permission.ALTER,
                                                                                         Permission.DROP,
                                                                                         Permission.AUTHORIZE,
-                                                                                        Permission.DESCRIBE);
+                                                                                        Permission.DESCRIBE,
+                                                                                        Permission.PROXY);
 
     private static final String ROOT_NAME = "roles";
     private static final RoleResource ROOT_RESOURCE = new RoleResource();
