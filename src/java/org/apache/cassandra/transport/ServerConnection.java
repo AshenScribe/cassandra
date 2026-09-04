@@ -62,8 +62,9 @@ public class ServerConnection extends Connection
         return stage;
     }
 
-    QueryState validateNewMessage(Message.Type type, ProtocolVersion version)
+    QueryState validateNewMessage(Message.Request request, ProtocolVersion version)
     {
+        Message.Type type = request.type;
         switch (stage)
         {
             case ESTABLISHED:
@@ -83,7 +84,7 @@ public class ServerConnection extends Connection
                 throw new AssertionError();
         }
 
-        return new QueryState(clientState);
+        return QueryState.forRequest(clientState, request.getCustomPayload());
     }
 
     void applyStateTransition(Message.Type requestType, Message.Type responseType)

@@ -18,7 +18,15 @@
 package org.apache.cassandra.service;
 
 import java.net.InetAddress;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
+import org.apache.cassandra.auth.AuthenticatedUser;
+import org.apache.cassandra.auth.ProxyExecution;
+import org.apache.cassandra.exceptions.InvalidRequestException;
+import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.cassandra.utils.FBUtilities;
 
 /**
@@ -52,6 +60,27 @@ public class QueryState
     public static QueryState forInternalCalls()
     {
         return new QueryState(ClientState.forInternalCalls());
+    }
+
+    /**
+     * Factory method to construct a QueryState, evaluating any proxy execution payload.
+     */
+    public static QueryState forRequest(ClientState clientState, Map<String, ByteBuffer> customPayload)
+    {
+        if (customPayload != null && customPayload.containsKey(ProxyExecution.PROXY_EXECUTE_KEY))
+        {
+            try
+            {
+                ByteBuffer targetUserBytes = customPayload.get(ProxyExecution.PROXY_EXECUTE_KEY);
+                String targetRoleName = ByteBufferUtil.string(targetUserBytes, StandardCharsets.UTF_8);
+                AuthenticatedUser targetUser = ProxyExecution.authorizeAndGetTargetUser(clientState.getUser(), targetRoleName);
+                ClientState proxiedClientState = new ClientState(clientState, targetUser);
+                return new QueryState(proxiedClientState);
+            } catch (CharacterCodingException e) {
+                throw new InvalidRequestException("Failed to decode ProxyExecute target role name as a valid UTF-8 string: " + e.getMessage());
+            }
+        }
+        return new QueryState(clientState);
     }
 
     /**

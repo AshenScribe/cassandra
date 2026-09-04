@@ -422,7 +422,7 @@ public class Dispatcher implements CQLMessageHandler.MessageConsumer<Message.Req
             }
         }
 
-        QueryState qstate = connection.validateNewMessage(request.type, connection.getVersion());
+        QueryState qstate = connection.validateNewMessage(request, connection.getVersion());
 
         Message.logger.trace("Received: {}, v={}", request, connection.getVersion());
         connection.requests.inc();

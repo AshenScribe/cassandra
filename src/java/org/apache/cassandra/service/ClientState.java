@@ -111,6 +111,8 @@ public class ClientState
 
     // Current user for the session
     private volatile AuthenticatedUser user;
+    // The original authenticated user who established the connection (P1)
+    private final AuthenticatedUser authenticatedUser;
     private volatile String keyspace;
     private volatile boolean issuedPreparedStatementsUseWarning;
     private volatile boolean issuedWarningForUneligiblePreparedStatements;
@@ -193,6 +195,7 @@ public class ClientState
     {
         this.isInternal = true;
         this.remoteAddress = null;
+        this.authenticatedUser = null;
     }
 
     protected ClientState(InetSocketAddress remoteAddress)
@@ -201,6 +204,7 @@ public class ClientState
         this.remoteAddress = remoteAddress;
         if (!DatabaseDescriptor.isAuthenticationRequired())
             this.user = AuthenticatedUser.ANONYMOUS_USER;
+        this.authenticatedUser = null;
     }
 
     protected ClientState(ClientState source)
@@ -212,6 +216,19 @@ public class ClientState
         this.driverName = source.driverName;
         this.driverVersion = source.driverVersion;
         this.clientOptions = source.clientOptions;
+        this.authenticatedUser = source.authenticatedUser;
+    }
+
+    public ClientState(ClientState other, AuthenticatedUser effectiveUser)
+    {
+        this.isInternal = other.isInternal;
+        this.remoteAddress = other.remoteAddress;
+        this.user = effectiveUser;
+        this.keyspace = other.keyspace;
+        this.driverName = other.driverName;
+        this.driverVersion = other.driverVersion;
+        this.clientOptions = other.clientOptions;
+        this.authenticatedUser = other.user;
     }
 
     /**
@@ -682,6 +699,15 @@ public class ClientState
     private Set<Permission> authorize(IResource resource)
     {
         return user.getPermissions(resource);
+    }
+
+    /**
+     * Returns the original authenticated user who established the connection (P1).
+     * Falls back to the current effective user if this is a standard, non-proxied session.
+     */
+    public AuthenticatedUser getAuthenticatedUser()
+    {
+        return authenticatedUser != null ? authenticatedUser : user;
     }
 
 }
