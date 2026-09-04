@@ -33,6 +33,7 @@ import org.junit.Test;
 
 import org.apache.cassandra.auth.AuthCacheService;
 import org.apache.cassandra.auth.ProxyExecution;
+import org.apache.cassandra.config.CassandraRelevantProperties;
 import org.apache.cassandra.distributed.api.Feature;
 import org.apache.cassandra.distributed.api.IInvokableInstance;
 import org.apache.cassandra.distributed.test.TestBaseImpl;
@@ -47,7 +48,7 @@ public class ProxyExecutionDistributedTest extends TestBaseImpl
     @BeforeClass
     public static void setUp()
     {
-        System.setProperty("cassandra.superuser_setup_delay_ms", "0");
+        CassandraRelevantProperties.SUPERUSER_SETUP_DELAY_MS.setInt(0);
     }
 
     private static void executeAsSuperuser(IInvokableInstance node, String query)
