@@ -45,7 +45,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ClientsTableTest extends CQLTester
 {
     private static final String KS_NAME = "vts";
-    
+
     @BeforeClass
     public static void config()
     {
@@ -70,7 +70,7 @@ public class ClientsTableTest extends CQLTester
         shouldUseEncryption(true);
         shouldUseClientCertificate(true);
         ResultSet result = executeNet("SELECT * FROM vts.clients");
-        assertThat(result.getColumnDefinitions().size()).isEqualTo(15);
+        assertThat(result.getColumnDefinitions().size()).isEqualTo(16);
         for (Row r : result)
         {
             Assert.assertEquals(InetAddress.getLoopbackAddress(), r.getInet("address"));
@@ -86,6 +86,7 @@ public class ClientsTableTest extends CQLTester
             Assert.assertTrue(r.getString("ssl_protocol").startsWith("TLS"));
             Assert.assertNotNull(r.getString("ssl_cipher_suite"));
             Assert.assertEquals("cassandra", r.getString("username"));
+            Assert.assertEquals("cassandra", r.getString("authenticated_user"));
             Assert.assertEquals("MutualTls", r.getString("authentication_mode"));
             Assert.assertEquals(Collections.singletonMap("identity", TlsTestUtils.CLIENT_SPIFFE_IDENTITY),
                                 r.getMap("authentication_metadata", String.class, String.class));

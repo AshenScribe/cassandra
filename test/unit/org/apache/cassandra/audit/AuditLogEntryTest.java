@@ -62,6 +62,8 @@ public class AuditLogEntryTest
         ClientState mockClientState = mock(ClientState.class);
         when(mockClientState.getRemoteAddress()).thenReturn(remoteAddress);
         when(mockClientState.getUser()).thenReturn(mockAuthenticatedUser);
+
+        when(mockClientState.getAuthenticatedUser()).thenReturn(mockAuthenticatedUser);
         when(mockClientState.getKeyspace()).thenReturn("test_keyspace");
 
         QueryState mockQueryState = mock(QueryState.class);
@@ -89,5 +91,33 @@ public class AuditLogEntryTest
                                                          "source=/127.0.0.1 port=9999 timestamp=\\d+ " +
                                                          "type=LOGIN_SUCCESS category=AUTH " +
                                                          "operation=LOGIN SUCCESSFUL identity=cassandra_user_identity");
+    }
+
+    @Test
+    public void testProxyExecutionGetLogString()
+    {
+        InetSocketAddress remoteAddress = new InetSocketAddress("127.0.0.1", 9999);
+
+        AuthenticatedUser mockProxyUser = mock(AuthenticatedUser.class);
+        when(mockProxyUser.getName()).thenReturn("proxy_service");
+
+        AuthenticatedUser mockTargetUser = mock(AuthenticatedUser.class);
+        when(mockTargetUser.getName()).thenReturn("target_user");
+
+        ClientState mockClientState = mock(ClientState.class);
+        when(mockClientState.getRemoteAddress()).thenReturn(remoteAddress);
+        when(mockClientState.getAuthenticatedUser()).thenReturn(mockProxyUser); // P1
+        when(mockClientState.getUser()).thenReturn(mockTargetUser);             // U1
+
+        QueryState mockQueryState = mock(QueryState.class);
+        when(mockQueryState.getClientState()).thenReturn(mockClientState);
+
+        AuditLogEntry proxyEntry = new AuditLogEntry.Builder(mockQueryState)
+                                   .setOperation("SELECT * FROM foo")
+                                   .setType(AuditLogEntryType.SELECT)
+                                   .build();
+
+        // Verify that BOTH the caller (proxy_service) and effective user (target_user) are logged
+        assertThat(proxyEntry.getLogString()).contains("user:proxy_service|executed_as:target_user");
     }
 }

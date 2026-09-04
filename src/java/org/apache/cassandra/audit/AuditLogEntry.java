@@ -54,12 +54,14 @@ public class AuditLogEntry
     private final QueryOptions options;
     private final QueryState state;
     private final Map<String, Object> metadata;
+    private final String executedAs;
 
     private AuditLogEntry(Builder builder)
     {
         this.type = builder.type;
         this.source = builder.source;
         this.user = builder.user;
+        this.executedAs = builder.executedAs;
         this.timestamp = builder.timestamp;
         this.batch = builder.batch;
         this.keyspace = builder.keyspace;
@@ -79,8 +81,13 @@ public class AuditLogEntry
     String getLogString(String keyValueSeparator, String fieldSeparator)
     {
         StringBuilder builder = new StringBuilder(100);
-        builder.append("user").append(keyValueSeparator).append(user)
-               .append(fieldSeparator).append("host").append(keyValueSeparator).append(host);
+        builder.append("user").append(keyValueSeparator).append(user);
+
+        if (executedAs != null)
+        {
+            builder.append(fieldSeparator).append("executed_as").append(keyValueSeparator).append(executedAs);
+        }
+        builder.append(fieldSeparator).append("host").append(keyValueSeparator).append(host);
 
         // Source is only expected to be null during testing
         // in MacOS when running in-jvm dtests
@@ -133,6 +140,11 @@ public class AuditLogEntry
     public String getUser()
     {
         return user;
+    }
+
+    public String getExecutedAs()
+    {
+        return executedAs;
     }
 
     public long getTimestamp()
@@ -197,6 +209,7 @@ public class AuditLogEntry
         private AuditLogEntryType type;
         private InetAddressAndPort source;
         private String user;
+        private String executedAs;
         private long timestamp;
         private UUID batch;
         private String keyspace;
@@ -221,6 +234,7 @@ public class AuditLogEntry
                 }
 
                 AuthenticatedUser authenticatedUser = clientState.getUser();
+                AuthenticatedUser effUser = clientState.getAuthenticatedUser();
                 if (authenticatedUser != null)
                 {
                     user = authenticatedUser.getName();
@@ -230,6 +244,15 @@ public class AuditLogEntry
                         metadata = Map.copyOf(authenticatedUser.getMetadata());
                     }
                 }
+                else if (effUser != null)
+                {
+                    user = effUser.getName();
+                }
+                if (authenticatedUser != null && effUser != null && !authenticatedUser.equals(effUser))
+                {
+                    executedAs = effUser.getName();
+                }
+
                 keyspace = clientState.getRawKeyspace();
             }
             else
@@ -246,6 +269,7 @@ public class AuditLogEntry
             type = entry.type;
             source = entry.source;
             user = entry.user;
+            executedAs = entry.executedAs;
             timestamp = entry.timestamp;
             batch = entry.batch;
             keyspace = entry.keyspace;
@@ -271,6 +295,12 @@ public class AuditLogEntry
         public Builder setUser(String user)
         {
             this.user = user;
+            return this;
+        }
+
+        public Builder setExecutedAs(String executedAs)
+        {
+            this.executedAs = executedAs;
             return this;
         }
 
@@ -348,4 +378,3 @@ public class AuditLogEntry
         }
     }
 }
-

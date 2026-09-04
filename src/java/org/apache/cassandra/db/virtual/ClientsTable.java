@@ -39,6 +39,7 @@ final class ClientsTable extends AbstractVirtualTable
     private static final String ADDRESS = "address";
     private static final String PORT = "port";
     private static final String USERNAME = "username";
+    private static final String AUTHENTICATED_USER = "authenticated_user";
     private static final String CONNECTION_STAGE = "connection_stage";
     private static final String PROTOCOL_VERSION = "protocol_version";
     private static final String CLIENT_OPTIONS = "client_options";
@@ -61,6 +62,7 @@ final class ClientsTable extends AbstractVirtualTable
                            .addPartitionKeyColumn(ADDRESS, InetAddressType.instance)
                            .addClusteringColumn(PORT, Int32Type.instance)
                            .addRegularColumn(USERNAME, UTF8Type.instance)
+                           .addRegularColumn(AUTHENTICATED_USER, UTF8Type.instance)
                            .addRegularColumn(CONNECTION_STAGE, UTF8Type.instance)
                            .addRegularColumn(PROTOCOL_VERSION, Int32Type.instance)
                            .addRegularColumn(CLIENT_OPTIONS, MapType.getInstance(UTF8Type.instance, UTF8Type.instance, false))
@@ -87,6 +89,7 @@ final class ClientsTable extends AbstractVirtualTable
 
             result.row(remoteAddress.getAddress(), remoteAddress.getPort())
                   .column(USERNAME, client.username().orElse(null))
+                  .column(AUTHENTICATED_USER, client.authenticatedUser().orElse(null))
                   .column(CONNECTION_STAGE, toLowerCaseLocalized(client.stage().toString()))
                   .column(PROTOCOL_VERSION, client.protocolVersion())
                   .column(CLIENT_OPTIONS, client.clientOptions().orElse(null))

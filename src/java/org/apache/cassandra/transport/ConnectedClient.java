@@ -37,6 +37,7 @@ public final class ConnectedClient
 {
     public static final String ADDRESS = "address";
     public static final String USER = "user";
+    public static final String AUTHENTICATED_USER = "authenticatedUser";
     public static final String VERSION = "version";
     public static final String CLIENT_OPTIONS = "clientOptions";
     public static final String DRIVER_NAME = "driverName";
@@ -75,6 +76,13 @@ public final class ConnectedClient
         return null != user
              ? Optional.of(user.getName())
              : Optional.empty();
+    }
+
+    public Optional<String> authenticatedUser()
+    {
+        AuthenticatedUser user = state().getUser();
+
+        return user != null ? Optional.of(user.getName()) : Optional.empty();
     }
 
     public int protocolVersion()
@@ -163,6 +171,7 @@ public final class ConnectedClient
         return ImmutableMap.<String, String>builder()
                            .put(ADDRESS, remoteAddress().toString())
                            .put(USER, username().orElse(UNDEFINED))
+                           .put(AUTHENTICATED_USER, authenticatedUser().orElse(UNDEFINED))
                            .put(VERSION, String.valueOf(protocolVersion()))
                            .put(CLIENT_OPTIONS, Joiner.on(", ")
                                                       .withKeyValueSeparator("=")
