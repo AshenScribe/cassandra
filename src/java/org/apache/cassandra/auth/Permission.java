@@ -60,6 +60,8 @@ public enum Permission
 
     UNMASK, // required to see masked data
 
+    PROXY, // required for acting as a proxy to a request
+
     SELECT_MASKED; // required for SELECT on a table with restictions on masked columns
 
     public static final Set<Permission> ALL =
